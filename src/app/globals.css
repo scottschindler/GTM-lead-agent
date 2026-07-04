@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --geist-background: #ffffff;
+  --geist-foreground: #000000;
+  --geist-success: #0070f3;
+  --geist-cyan: #79ffe1;
+  --geist-muted: #666666;
+  --geist-border: #eaeaea;
+  --geist-surface: var(--geist-background);
+  --geist-subtle: color-mix(
+    in srgb,
+    var(--geist-muted) 8%,
+    transparent
+  );
+  --geist-hover: color-mix(
+    in srgb,
+    var(--geist-foreground) 4%,
+    transparent
+  );
+  --geist-accent-soft: color-mix(
+    in srgb,
+    var(--geist-success) 10%,
+    transparent
+  );
+  --geist-error: #e00000;
+  --geist-warning: #a35200;
+  --geist-error-soft: color-mix(
+    in srgb,
+    var(--geist-error) 10%,
+    transparent
+  );
+  --geist-warning-soft: color-mix(
+    in srgb,
+    var(--geist-warning) 12%,
+    transparent
+  );
+  --geist-shadow: 0 12px 30px
+    color-mix(in srgb, var(--geist-foreground) 7%, transparent);
+  --geist-shadow-sm: 0 1px 2px
+    color-mix(in srgb, var(--geist-foreground) 8%, transparent);
+
+  /* Static tokens for the always-dark, Vercel-branded landing pages.
+     These do not flip with the color scheme. */
+  --geist-hero-background: #000000;
+  --geist-hero-surface: #0a0a0a;
+  --geist-hero-foreground: #ffffff;
+  --geist-hero-muted: #999999;
+  --geist-hero-border: #262626;
+}
+
+@theme inline {
+  --color-background: var(--geist-background);
+  --color-foreground: var(--geist-foreground);
+  --color-muted: var(--geist-muted);
+  --color-border: var(--geist-border);
+  --color-success: var(--geist-success);
+  --color-cyan: var(--geist-cyan);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-sans);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --geist-background: #000000;
+    --geist-foreground: #ffffff;
+    --geist-muted: #888888;
+    --geist-border: #333333;
+    --geist-error: #ff6166;
+    --geist-warning: #f5a623;
+  }
+}
+
+html {
+  background: var(--geist-background);
+  color: var(--geist-foreground);
+}
+
+body {
+  background: var(--geist-background);
+  color: var(--geist-foreground);
+  font-family: var(--font-sans);
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+}
+
+button {
+  font: inherit;
+}
+
+a.geist-btn {
+  text-decoration: none;
+}
+
+.geist-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.25rem;
+  padding-inline: 0.875rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+
+.geist-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.geist-btn-secondary {
+  border: 1px solid var(--geist-border);
+  background: var(--geist-background);
+  color: var(--geist-foreground);
+  box-shadow: var(--geist-shadow-sm);
+}
+
+.geist-btn-secondary:hover:not(:disabled) {
+  background: var(--geist-hover);
+  border-color: color-mix(
+    in srgb,
+    var(--geist-foreground) 18%,
+    var(--geist-border)
+  );
+}
+
+.geist-btn-primary {
+  border: 1px solid var(--geist-foreground);
+  background: var(--geist-foreground);
+  color: var(--geist-background);
+  box-shadow: var(--geist-shadow-sm);
+}
+
+.geist-btn-primary:hover:not(:disabled) {
+  opacity: 0.88;
+}
+
+.geist-btn-group {
+  display: inline-flex;
+  align-items: stretch;
+  overflow: hidden;
+  border-radius: 8px;
+  border: 1px solid var(--geist-border);
+  background: var(--geist-background);
+  box-shadow: var(--geist-shadow-sm);
+}
+
+.geist-btn-group .geist-btn {
+  height: 2.25rem;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.geist-btn-group .geist-btn:not(:last-child) {
+  border-right: 1px solid var(--geist-border);
+}
+
+.geist-btn-group .geist-btn:hover:not(:disabled) {
+  background: var(--geist-hover);
+}
+
+.geist-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.geist-nav-link {
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
+  padding-inline: 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  color: var(--geist-muted);
+  text-decoration: none;
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.geist-nav-link:hover {
+  color: var(--geist-foreground);
+  background: var(--geist-hover);
+}
+
+.geist-nav-link[aria-current="page"] {
+  color: var(--geist-foreground);
+  font-weight: 500;
+}
