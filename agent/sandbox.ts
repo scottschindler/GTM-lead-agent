@@ -1,11 +1,17 @@
 import { defineSandbox } from "eve/sandbox";
 import { justbash } from "eve/sandbox/just-bash";
+import { vercel } from "eve/sandbox/vercel";
 
-// Pin the sandbox to the in-process just-bash backend. The default backend
-// boots a microsandbox micro-VM on this host, which adds session startup
-// latency and can wedge (hanging load_skill forever). This agent only uses
-// the sandbox to read skill markdown — bash is disabled — so the
-// dependency-free virtual filesystem is strictly better here.
+// Keep local sessions fast with just-bash, but use hosted Vercel Sandbox in
+// production so build-time prewarm provisions templates for the workflow
+// runtime. This agent only uses the sandbox to read skill markdown, so it does
+// not depend on backend-specific use() options.
+type Backend = ReturnType<typeof justbash>;
+
+function backend(): Backend {
+  return process.env.VERCEL ? (vercel() as unknown as Backend) : justbash();
+}
+
 export default defineSandbox({
-  backend: justbash(),
+  backend,
 });
