@@ -153,14 +153,137 @@ const writableStageSchema = z.enum([
 
 type WritableStage = z.infer<typeof writableStageSchema>;
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function asText(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function asTextList(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    const text = asText(item);
+    return text ? [text] : [];
+  });
+}
+
 function emailBodyWithLandingPage(body: string, landingPageUrl?: string): string {
   const trimmedUrl = landingPageUrl?.trim();
   if (!trimmedUrl || body.includes(trimmedUrl)) return body;
+  if (body.includes("{{landingPageUrl}}")) {
+    return body.replaceAll("{{landingPageUrl}}", trimmedUrl);
+  }
   return `${body.trim()}\n\nI put together a short page with more detail here: ${trimmedUrl}`;
 }
 
 function wordCount(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
+}
+
+function normalizeObjectionResponses(value: unknown): unknown {
+  if (!Array.isArray(value)) return value;
+  return value.map((item) => {
+    const text = asText(item);
+    if (text) return text;
+
+    const record = asRecord(item);
+    if (!record) return item;
+
+    const objection = asText(record.objection);
+    const response = asText(record.response);
+    if (objection && response) return `${objection} ${response}`;
+    return objection ?? response ?? item;
+  });
+}
+
+function normalizeMessagingStrategy(
+  value: unknown,
+  content: Record<string, unknown>,
+): unknown {
+  const fallbackCta = asText(content.cta) ?? "Reply if useful";
+  const fallbackHook =
+    asTextList(content.subjectLines)[0] ?? "Relevant account signal";
+
+  const text = asText(value);
+  if (text) {
+    return {
+      messagingAngle: text,
+      technicalDepth: "medium",
+      tone: "concise, peer-to-peer",
+      story: text,
+      hooks: [fallbackHook],
+      cta: fallbackCta,
+      customerExamples: [],
+      likelyObjections: [],
+    };
+  }
+
+  const record = asRecord(value);
+  if (!record) return value;
+
+  const messagingAngle =
+    asText(record.messagingAngle) ??
+    asText(record.angle) ??
+    asText(record.summary) ??
+    asText(record.story) ??
+    fallbackHook;
+  const technicalDepth = asText(record.technicalDepth);
+
+  return {
+    ...record,
+    messagingAngle,
+    technicalDepth:
+      technicalDepth === "low" ||
+      technicalDepth === "medium" ||
+      technicalDepth === "high"
+        ? technicalDepth
+        : "medium",
+    tone: asText(record.tone) ?? "concise, peer-to-peer",
+    story: asText(record.story) ?? asText(record.summary) ?? messagingAngle,
+    hooks: asTextList(record.hooks).length
+      ? asTextList(record.hooks)
+      : [fallbackHook],
+    cta: asText(record.cta) ?? fallbackCta,
+    customerExamples: asTextList(record.customerExamples),
+    likelyObjections: asTextList(record.likelyObjections),
+  };
+}
+
+function normalizeContentOutput(value: unknown): unknown {
+  const record = asRecord(value);
+  if (!record) return value;
+  return {
+    ...record,
+    messagingStrategy: normalizeMessagingStrategy(
+      record.messagingStrategy,
+      record,
+    ),
+    objectionResponses: normalizeObjectionResponses(record.objectionResponses),
+  };
+}
+
+function normalizeSequenceOutput(value: unknown): unknown {
+  const record = asRecord(value);
+  if (!record) return value;
+  const exitConditionsText = asText(record.exitConditions);
+  if (!exitConditionsText) return value;
+  return {
+    ...record,
+    exitConditions: exitConditionsText
+      .split(/(?:\.\s+|;\s+|\n+)/)
+      .map((item) => item.trim().replace(/\.$/, ""))
+      .filter(Boolean),
+  };
+}
+
+function normalizeStageOutput(stage: WritableStage, output: unknown): unknown {
+  if (stage === "content_generation") return normalizeContentOutput(output);
+  if (stage === "sequence_planning") return normalizeSequenceOutput(output);
+  return output;
 }
 
 export default defineTool({
@@ -248,13 +371,14 @@ export default defineTool({
         content_generation: contentSchema,
       };
 
+      const stageOutput = normalizeStageOutput(stage, output);
       const normalizedOutput =
         stage === "research"
-          ? normalizeResearchBriefInput(output, {
+          ? normalizeResearchBriefInput(stageOutput, {
               companyName: resolvedLead.company,
               personName: resolvedLead.name,
             })
-          : output;
+          : stageOutput;
       const parsed = schemas[stage].safeParse(normalizedOutput);
       if (!parsed.success) {
         return {

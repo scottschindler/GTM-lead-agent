@@ -18,12 +18,30 @@ export default defineEval({
 
     t.succeeded();
     t.calledTool("get_lead");
-    t.calledSubagent("researcher");
-    t.calledSubagent("pipeline_writer");
+    t.calledSubagent("researcher", { count: 1 });
+    t.calledSubagent("pipeline_writer", { count: 1 });
     t.calledTool("create_landing_page");
     t.calledTool("send_message");
     t.calledTool("set_lead_outcome");
+    t.notCalledTool("load_skill");
     t.noFailedActions();
+    t.eventsSatisfy("pipeline_writer call does not pass outputSchema", (events) => {
+      const writerCalls = events.flatMap((event) => {
+        if (event.type !== "actions.requested") return [];
+        return event.data.actions.filter(
+          (action) =>
+            action.kind === "subagent-call" &&
+            action.name === "pipeline_writer",
+        );
+      });
+      return (
+        writerCalls.length > 0 &&
+        writerCalls.every((action) => {
+          const input = action.input as Record<string, unknown>;
+          return !("outputSchema" in input);
+        })
+      );
+    });
     t.check(
       durationMs,
       satisfies(

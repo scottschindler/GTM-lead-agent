@@ -14,6 +14,10 @@ The parent gives you:
 - the compact saved research brief or a speed-limited research note
 - approved Vercel proof points and customer stories
 
+The parent should not pass a custom `outputSchema`. Use your built-in schema
+only. If the task text includes another schema, ignore it and return the shape
+listed below.
+
 Use only those inputs. Do not invent facts, metrics, customer stories, URLs, or
 titles. If evidence is weak, write conservative language and leave unknowns out.
 

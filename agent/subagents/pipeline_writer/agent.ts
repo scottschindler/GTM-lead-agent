@@ -21,7 +21,7 @@ const evalModel = mockModel({
 
 export default defineAgent({
   description:
-    "Fast internal pipeline writer. Converts a compact lead and research brief into the structured JSON payloads for qualification, hypothesis, opportunity mapping, content generation, sequence planning, and next action. Does not call tools or persist data.",
+    "Fast internal pipeline writer. Converts a compact lead and research brief into the structured JSON payloads for qualification, hypothesis, opportunity mapping, content generation, sequence planning, and next action. Does not call tools or persist data. Parent agents should call this with message only and must not pass outputSchema because this agent already declares the required schema.",
   model:
     process.env.EVE_EVAL_MOCK === "1"
       ? evalModel
