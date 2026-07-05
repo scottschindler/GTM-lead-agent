@@ -3,7 +3,6 @@ import type {
   OpportunityMappingOutput,
   QualificationOutput,
   ResearchBrief,
-  SequencePlanningOutput,
 } from "../../agent/lib/types";
 
 // Stage outputs for the two hardcoded Needs-review demo cards (the send-
@@ -145,32 +144,6 @@ export const COCKROACH_OPPORTUNITIES: OpportunityMappingOutput = {
       priority: 1,
     },
   ],
-};
-
-export const COCKROACH_SEQUENCE: SequencePlanningOutput = {
-  channels: ["email"],
-  cadence: "day 0 / day 3 / day 7",
-  timing: "weekday morning local time — no weekend sends",
-  steps: [
-    {
-      channel: "email",
-      delayDays: 0,
-      purpose: "Open with the peer-engineer platform-team angle",
-    },
-    {
-      channel: "email",
-      delayDays: 3,
-      purpose: "Follow up with an internal-portal consolidation example",
-    },
-    {
-      channel: "email",
-      delayDays: 7,
-      purpose: "Close with a customer proof point, then exit",
-    },
-  ],
-  followUpLogic:
-    "If no reply, keep follow-ups short and tied to the portal-consolidation pain; exit after touch 3.",
-  exitConditions: ["Reply received", "Meeting booked", "Opt-out"],
 };
 
 export const COCKROACH_MESSAGING: MessagingStrategyOutput = {

@@ -4,8 +4,8 @@ export const PIPELINE_STAGES = [
   "qualification",
   "hypothesis",
   "opportunity_mapping",
-  "sequence_planning",
   "content_generation",
+  "sequence_planning",
   "engagement_intent",
   "learning",
 ] as const;
@@ -17,8 +17,8 @@ export const TOGGLEABLE_STAGES = [
   "qualification",
   "hypothesis",
   "opportunity_mapping",
-  "sequence_planning",
   "content_generation",
+  "sequence_planning",
   "learning",
 ] as const;
 
@@ -307,8 +307,8 @@ export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
     qualification: true,
     hypothesis: true,
     opportunity_mapping: true,
-    sequence_planning: true,
     content_generation: true,
+    sequence_planning: true,
     learning: true,
   },
   landingPages: true,
@@ -326,8 +326,8 @@ export function emptyStages(): LeadStages {
     qualification: pending(),
     hypothesis: pending(),
     opportunity_mapping: pending(),
-    sequence_planning: pending(),
     content_generation: pending(),
+    sequence_planning: pending(),
     engagement_intent: pending(),
     learning: pending(),
   };

@@ -44,7 +44,6 @@ import {
   COCKROACH_OPPORTUNITIES,
   COCKROACH_QUALIFICATION,
   COCKROACH_RESEARCH,
-  COCKROACH_SEQUENCE,
   REPLIT_INTAKE,
   REPLIT_QUALIFICATION,
   REPLIT_RESEARCH,
@@ -358,8 +357,8 @@ const QUALIFICATION_PIPELINE: ReviewPipelineStep[] = [
     output: REPLIT_QUALIFICATION,
   },
   { label: "Opportunity", state: "future" },
-  { label: "Sequence", state: "future" },
   { label: "Messaging", state: "future" },
+  { label: "Sequence", state: "future" },
   { label: "Send", state: "future" },
 ];
 
@@ -384,17 +383,12 @@ const MESSAGING_PIPELINE: ReviewPipelineStep[] = [
     output: COCKROACH_OPPORTUNITIES,
   },
   {
-    label: "Sequence",
-    state: "done",
-    stage: "sequence_planning",
-    output: COCKROACH_SEQUENCE,
-  },
-  {
     label: "Messaging",
     state: "current",
     stage: "content_generation",
     output: { messagingStrategy: COCKROACH_MESSAGING },
   },
+  { label: "Sequence", state: "future" },
   { label: "Draft", state: "future" },
   { label: "Send", state: "future" },
 ];
@@ -429,16 +423,16 @@ function buildSendPipeline(item: ReviewItem): ReviewPipelineStep[] {
       output: stages.opportunity_mapping?.output,
     },
     {
-      label: "Sequence",
-      state: "done",
-      stage: "sequence_planning",
-      output: stages.sequence_planning?.output,
-    },
-    {
       label: "Messaging",
       state: "done",
       stage: "content_generation",
       output: stages.content_generation?.output,
+    },
+    {
+      label: "Sequence",
+      state: "done",
+      stage: "sequence_planning",
+      output: stages.sequence_planning?.output,
     },
     {
       label: "Send",
@@ -1063,19 +1057,18 @@ function buildNeedsReviewCards(sendItem: ReviewItem): PipelineReviewCard[] {
       leadName: "Spencer Kimball",
       company: "Cockroach Labs",
       source: "demo-request",
-      currentStage: "Messaging and sequence review",
+      currentStage: "Messaging review",
       blockedBy: "Executive touch plus strategic positioning",
       approvalReason:
-        "The agent mapped a platform-team opportunity and selected a multi-touch sequence. Configure requires a BDR to approve the angle before the agent writes the first draft.",
+        "The agent mapped a platform-team opportunity and proposed a messaging angle. Configure requires a BDR to approve the angle before the agent plans the sequence and writes the first draft.",
       completedActions: [
         "Mapped the pain from internal developer portals to Vercel preview deploys and edge delivery.",
         "Selected a peer-engineer messaging angle for infrastructure leaders.",
-        "Planned a day 0 / day 3 / day 7 email sequence with no weekend sends.",
       ],
       nextRequiredAction:
-        "Approve the messaging angle and cadence, or request a rewrite before draft generation.",
+        "Approve the messaging angle, or request a rewrite before sequence planning and draft generation.",
       recommendedDecision:
-        "Approve angle and cadence; the sequence is concise and tied to real developer-experience pain.",
+        "Approve the angle; it is concise and tied to real developer-experience pain.",
       pipelineSteps: MESSAGING_PIPELINE,
       evidence: [
         "Demo request submitted this week.",

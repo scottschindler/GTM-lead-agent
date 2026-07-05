@@ -40,8 +40,8 @@ export const STAGE_ORDER: PipelineStage[] = [
   "qualification",
   "hypothesis",
   "opportunity_mapping",
-  "sequence_planning",
   "content_generation",
+  "sequence_planning",
 ];
 
 export const TOGGLE_LABELS: Record<ToggleableStage, string> = {

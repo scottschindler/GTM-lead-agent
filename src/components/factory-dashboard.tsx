@@ -188,14 +188,42 @@ function StageCard({
   );
 }
 
+// Turns a failed agent request into a message a human can act on. The eve
+// client's raw errors ("Unauthorized", "Failed to fetch") don't say which
+// endpoint failed or what to check.
+function describeAgentError(err: unknown): string {
+  const raw =
+    err instanceof Error ? err.message : typeof err === "string" ? err : "";
+  if (/401|unauthenticated|unauthorized/i.test(raw)) {
+    return "The agent endpoint rejected this browser (401 unauthenticated on /eve/v1/session). The deployment's route auth doesn't admit browser traffic — check the auth walk in agent/channels/eve.ts and redeploy.";
+  }
+  if (/403|forbidden/i.test(raw)) {
+    return "The agent endpoint refused this request (403 forbidden on /eve/v1/session). An authenticator recognized the caller but denied it — check the auth walk in agent/channels/eve.ts.";
+  }
+  if (/failed to fetch|networkerror|load failed/i.test(raw)) {
+    return "Could not reach the agent endpoint (/eve/v1/session). The network request never completed — check that the deployment is up and serving the eve routes.";
+  }
+  if (/429|rate.?limit/i.test(raw)) {
+    return "The agent endpoint is rate-limiting requests (429). Wait a moment and run the pipeline again.";
+  }
+  if (/5\d\d|internal server error/i.test(raw)) {
+    return `The agent crashed while starting the run (server error on /eve/v1/session). Check the deployment's function logs. Original error: ${raw}`;
+  }
+  return raw ? `Pipeline run failed: ${raw}` : "Pipeline run failed before the agent could start.";
+}
+
 export function FactoryDashboard() {
-  const agent = useEveAgent();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [config, setConfig] = useState<PipelineConfig | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Surface turn failures even when nothing awaits them (e.g. the stream
+  // drops mid-run) — without this the run just stops silently.
+  const agent = useEveAgent({
+    onError: (err) => setError(describeAgentError(err)),
+  });
   const [showPrevLead, setShowPrevLead] = useState(false);
   const [runSubmitting, setRunSubmitting] = useState(false);
   const runSubmittingRef = useRef(false);
@@ -362,7 +390,7 @@ export function FactoryDashboard() {
       await agent.send({ message: buildRunMessage(lead, config) });
       await Promise.all([refreshLeads(), refreshActivity()]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to run pipeline");
+      setError(describeAgentError(err));
     } finally {
       runSubmittingRef.current = false;
       setRunSubmitting(false);
@@ -467,8 +495,15 @@ export function FactoryDashboard() {
         </div>
 
         {error || agent.error ? (
-          <div className="rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-subtle)] px-4 py-3 text-sm">
-            {error ?? agent.error?.message}
+          <div
+            role="alert"
+            className="rounded-[8px] border px-4 py-3 text-sm"
+            style={{
+              borderColor: "var(--geist-error)",
+              background: "var(--geist-error-soft)",
+            }}
+          >
+            {error ?? (agent.error ? describeAgentError(agent.error) : null)}
           </div>
         ) : null}
 

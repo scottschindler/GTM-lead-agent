@@ -4,8 +4,8 @@
     "qualification": true,
     "hypothesis": true,
     "opportunity_mapping": true,
-    "sequence_planning": true,
     "content_generation": true,
+    "sequence_planning": true,
     "learning": true
   },
   "landingPages": true
