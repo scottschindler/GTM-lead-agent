@@ -64,15 +64,6 @@ export const SEED_LEAD_PROFILES: SeedLeadProfile[] = [
     timezone: "America/Los_Angeles",
   },
   {
-    id: "lead_10",
-    name: "Michelle Zatlyn",
-    email: "michelle@cloudflare.com",
-    company: "Cloudflare",
-    companyDomain: "cloudflare.com",
-    source: "pricing-page",
-    timezone: "America/Los_Angeles",
-  },
-  {
     id: "lead_11",
     name: "Jean-Denis Greze",
     email: "jdg@plaid.com",
