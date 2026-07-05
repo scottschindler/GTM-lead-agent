@@ -102,6 +102,46 @@ function leadHasResettableState(lead: Lead): boolean {
   );
 }
 
+const TERMINAL_ACTIVITY_TYPES = new Set([
+  "turn.completed",
+  "session.waiting",
+  "session.completed",
+  "step.failed",
+  "turn.failed",
+  "session.failed",
+]);
+
+const STAGE_TOGGLE_BY_STAGE: Partial<
+  Record<PipelineStage, keyof PipelineConfig["stages"]>
+> = {
+  research: "enrichment",
+  qualification: "qualification",
+  hypothesis: "hypothesis",
+  opportunity_mapping: "opportunity_mapping",
+  content_generation: "content_generation",
+  sequence_planning: "sequence_planning",
+};
+
+function isTerminalActivityEvent(event: ActivityEvent): boolean {
+  return TERMINAL_ACTIVITY_TYPES.has(event.type);
+}
+
+function stageEnabled(stage: PipelineStage, config: PipelineConfig): boolean {
+  const toggle = STAGE_TOGGLE_BY_STAGE[stage];
+  return toggle ? config.stages[toggle] : true;
+}
+
+function stageIsSettled(record: StageRecord): boolean {
+  return record.status !== "pending" && record.status !== "running";
+}
+
+function leadPipelineSettled(lead: Lead, config: PipelineConfig): boolean {
+  if (lead.outcome !== "open") return true;
+  return STAGE_ORDER.filter((stage) => stageEnabled(stage, config)).every(
+    (stage) => stageIsSettled(stageRecord(lead, stage)),
+  );
+}
+
 function StageCard({
   stage,
   record,
@@ -281,29 +321,36 @@ export function FactoryDashboard() {
     };
   }, [refreshActivity, refreshConfig, refreshLeads]);
 
+  const lead = useMemo(() => {
+    if (leads.length === 0) return null;
+    if (activeLeadId) {
+      return leads.find((item) => item.id === activeLeadId) ?? leads[0];
+    }
+    return leads[0];
+  }, [activeLeadId, leads]);
+
   const agentBusy = agent.status === "submitted" || agent.status === "streaming";
   const stopAgent = agent.stop;
+  const selectedLeadSettled =
+    lead && config ? leadPipelineSettled(lead, config) : false;
 
-  // The eve client stream can desync from the server (e.g. a dev-time Nitro
-  // worker reload drops the SSE connection mid-turn), leaving `agent.status`
-  // pinned on "streaming" after the turn already finished. The server-side
-  // activity feed is authoritative: a `turn.completed` / `session.waiting`
-  // event as the newest entry means the turn is over.
-  const serverTurnEnded =
-    activity.length > 0 &&
-    (activity[0].type === "turn.completed" ||
-      activity[0].type === "session.waiting");
+  // The eve client stream can desync from the server, leaving `agent.status`
+  // pinned on "streaming" after the turn finished. Treat server lifecycle
+  // terminals and persisted lead completion as authoritative escape hatches.
+  const serverTurnTerminal =
+    activity.length > 0 && isTerminalActivityEvent(activity[0]);
 
-  const isBusy = runSubmitting || (agentBusy && !serverTurnEnded);
+  const isBusy =
+    runSubmitting ||
+    (agentBusy && !serverTurnTerminal && !selectedLeadSettled);
 
-  // If the server says the turn ended but the client stream never closed,
-  // abort the stale stream so a new run can start. The grace period avoids
-  // racing a healthy stream that's about to close on its own.
+  // If the server or lead state says the turn ended but the client stream did
+  // not close, abort the stale stream so a new run can start.
   useEffect(() => {
-    if (!serverTurnEnded || !agentBusy) return;
+    if ((!serverTurnTerminal && !selectedLeadSettled) || !agentBusy) return;
     const id = window.setTimeout(() => stopAgent(), 3000);
     return () => window.clearTimeout(id);
-  }, [serverTurnEnded, agentBusy, stopAgent]);
+  }, [serverTurnTerminal, selectedLeadSettled, agentBusy, stopAgent]);
 
   useEffect(() => {
     if (!agentBusy) return;
@@ -314,15 +361,7 @@ export function FactoryDashboard() {
     return () => window.clearInterval(id);
   }, [agentBusy, refreshActivity, refreshLeads]);
 
-  const lead = useMemo(() => {
-    if (leads.length === 0) return null;
-    if (activeLeadId) {
-      return leads.find((item) => item.id === activeLeadId) ?? leads[0];
-    }
-    return leads[0];
-  }, [activeLeadId, leads]);
-
-  const canRunActiveLead = lead?.outcome === "open";
+  const canRunActiveLead = lead?.outcome === "open" && !selectedLeadSettled;
   const hasResettableState =
     agentBusy || activity.length > 0 || leads.some(leadHasResettableState);
 
@@ -350,16 +389,19 @@ export function FactoryDashboard() {
   // While the agent is busy, an explicitly running stage is authoritative.
   // Otherwise, the first stage with no result yet is the one being worked on.
   const activeStage = useMemo<PipelineStage | null>(() => {
-    if (!lead) return null;
+    if (!lead || !config) return null;
+    const enabledStages = STAGE_ORDER.filter((stage) =>
+      stageEnabled(stage, config),
+    );
     return (
-      STAGE_ORDER.find(
+      enabledStages.find(
         (stage) => stageRecord(lead, stage).status === "running",
       ) ??
-      STAGE_ORDER.find(
+      enabledStages.find(
         (stage) => stageRecord(lead, stage).status === "pending",
       ) ?? null
     );
-  }, [lead]);
+  }, [config, lead]);
 
   // Events newer than the latest completed stage belong to the active stage.
   const activeStageEvents = useMemo(() => {

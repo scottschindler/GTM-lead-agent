@@ -1,5 +1,6 @@
 import {
   describePipelineSubagent,
+  describePipelineToolFailure,
   describePipelineToolCall,
   describePipelineToolResult,
 } from "./activity-copy";
@@ -85,7 +86,7 @@ export function buildActivityEntries(
         {
           type,
           summary: failed
-            ? "This step needs attention"
+            ? describePipelineToolFailure(toolName, result.output)
             : describePipelineToolResult(toolName),
           detail: {
             tool: toolName,
@@ -138,6 +139,7 @@ export function buildActivityEntries(
         },
       ];
     case "turn.completed":
+    case "session.completed":
       return [{ type, summary: "Pipeline run complete" }];
     default:
       return [];

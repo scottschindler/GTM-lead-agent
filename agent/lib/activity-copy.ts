@@ -59,7 +59,14 @@ const LIVE_HIDDEN_EVENT_TYPES = new Set([
   "step.completed",
   "turn.completed",
   "session.waiting",
+  "session.completed",
   "compaction.requested",
+]);
+
+const RECOVERY_TOOL_RESULTS = new Set([
+  "save_stage_output",
+  "send_message",
+  "set_lead_outcome",
 ]);
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -101,6 +108,40 @@ function activityResultFailed(event: ActivityEvent): boolean {
   return output.ok === false;
 }
 
+function oneLine(value: string): string {
+  const text = value.replace(/\s+/g, " ").trim();
+  return text.length > 180 ? `${text.slice(0, 177)}...` : text;
+}
+
+function failureReason(output: unknown): string | undefined {
+  const parsed = parseMaybeJson(output);
+  if (typeof parsed === "string") return oneLine(parsed);
+
+  const record = asRecord(parsed);
+  const reason =
+    asText(record.error) ??
+    asText(record.message) ??
+    asText(record.reason) ??
+    asText(record.details);
+  return reason ? oneLine(reason) : undefined;
+}
+
+function recoveredByLaterEvent(
+  eventIndex: number | undefined,
+  events: ActivityEvent[] | undefined,
+): boolean {
+  if (eventIndex === undefined || eventIndex <= 0 || !events) return false;
+  return events.slice(0, eventIndex).some((event) => {
+    if (event.type === "turn.completed" || event.type === "session.waiting") {
+      return true;
+    }
+    if (event.type !== "action.result" || activityResultFailed(event)) {
+      return false;
+    }
+    return RECOVERY_TOOL_RESULTS.has(activityTool(event) ?? "");
+  });
+}
+
 export function describePipelineToolCall(toolName: string, input?: unknown): string {
   if (toolName === "load_skill") {
     const skill = skillKey(input);
@@ -135,6 +176,16 @@ export function describePipelineToolResult(toolName: string): string {
   return TOOL_DONE_SUMMARIES[toolName] ?? "Pipeline step finished";
 }
 
+export function describePipelineToolFailure(
+  toolName: string,
+  output?: unknown,
+): string {
+  const reason = failureReason(output);
+  return reason
+    ? `${toolName} needs attention: ${reason}`
+    : `${toolName} needs attention`;
+}
+
 export function describePipelineSubagent(name: string): string {
   return name.toLowerCase().includes("research")
     ? "Research notes are ready"
@@ -150,7 +201,7 @@ export function humanizeActivitySummary(event: ActivityEvent): string {
 
   if (event.type === "action.result" && tool) {
     return activityResultFailed(event)
-      ? "This step needs attention"
+      ? describePipelineToolFailure(tool, asRecord(event.detail).output)
       : describePipelineToolResult(tool);
   }
 
@@ -174,6 +225,7 @@ export function humanizeActivitySummary(event: ActivityEvent): string {
     case "session.waiting":
       return "Waiting for the next instruction";
     case "turn.completed":
+    case "session.completed":
       return "Pipeline run complete";
     case "compaction.requested":
       return "Refreshing working context";
@@ -186,9 +238,18 @@ export function humanizeActivitySummary(event: ActivityEvent): string {
   }
 }
 
-export function shouldShowLivePipelineEvent(event: ActivityEvent): boolean {
+export function shouldShowLivePipelineEvent(
+  event: ActivityEvent,
+  eventIndex?: number,
+  events?: ActivityEvent[],
+): boolean {
   if (LIVE_HIDDEN_EVENT_TYPES.has(event.type)) return false;
-  if (event.type === "action.result") return activityResultFailed(event);
+  if (event.type === "action.result") {
+    return (
+      activityResultFailed(event) &&
+      !recoveredByLaterEvent(eventIndex, events)
+    );
+  }
   if (event.type === "actions.requested" && activityTool(event) === "tool") {
     return false;
   }
