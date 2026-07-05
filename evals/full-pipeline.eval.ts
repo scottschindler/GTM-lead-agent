@@ -19,6 +19,7 @@ export default defineEval({
     t.succeeded();
     t.calledTool("get_lead");
     t.calledSubagent("researcher", { count: 1 });
+    t.calledTool("qualify_lead", { count: 1 });
     t.calledSubagent("pipeline_writer", { count: 1 });
     t.calledTool("create_landing_page");
     t.calledTool("send_message");

@@ -4,20 +4,6 @@ function wordCount(value: string): number {
   return value.trim().split(/\s+/).filter(Boolean).length;
 }
 
-const qualificationSchema = z.object({
-  scores: z.object({
-    icpFit: z.number().min(0).max(10),
-    buyingAuthority: z.number().min(0).max(10),
-    productUsageOrIntent: z.number().min(0).max(10),
-    engineeringMaturity: z.number().min(0).max(10),
-    companyGrowth: z.number().min(0).max(10),
-    businessImpact: z.number().min(0).max(10),
-    overallPriority: z.number().min(0).max(10),
-  }),
-  verdict: z.enum(["qualified", "disqualified"]),
-  rationale: z.string(),
-});
-
 const hypothesisItemSchema = z.object({
   statement: z.string(),
   confidence: z.number().min(0).max(1),
@@ -73,7 +59,6 @@ const sequenceStepSchema = z.object({
 });
 
 export const pipelineWriterOutputSchema = z.object({
-  qualification: qualificationSchema,
   hypothesis: z.object({
     hypotheses: z.tuple([hypothesisItemSchema, hypothesisItemSchema]),
   }),
@@ -118,20 +103,6 @@ export const pipelineWriterOutputSchema = z.object({
 export type PipelineWriterOutput = z.infer<typeof pipelineWriterOutputSchema>;
 
 export const PIPELINE_WRITER_MOCK_OUTPUT: PipelineWriterOutput = {
-  qualification: {
-    scores: {
-      icpFit: 8,
-      buyingAuthority: 7,
-      productUsageOrIntent: 7,
-      engineeringMaturity: 8,
-      companyGrowth: 7,
-      businessImpact: 8,
-      overallPriority: 8,
-    },
-    verdict: "qualified",
-    rationale:
-      "Qualified because the account is engineering-led, shows product intent, and has clear web platform needs tied to growth.",
-  },
   hypothesis: {
     hypotheses: [
       {

@@ -12,6 +12,7 @@ The parent gives you:
 
 - canonical lead id, name, company, domain, source, and stage toggles
 - the compact saved research brief or a speed-limited research note
+- the saved qualification verdict and rationale
 - approved Vercel proof points and customer stories
 
 The parent should not pass a custom `outputSchema`. Use your built-in schema
@@ -25,7 +26,6 @@ titles. If evidence is weak, write conservative language and leave unknowns out.
 
 Return only the structured output required by your schema:
 
-- `qualification`
 - `hypothesis`
 - `opportunity_mapping`
 - `content_generation`
