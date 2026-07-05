@@ -21,6 +21,12 @@ function textOrFallback(value: unknown, fallback?: string): string {
   return typeof value === "string" && value.trim() ? value : fallback ?? "";
 }
 
+function sentenceCount(value: string): number {
+  const trimmed = value.trim();
+  if (!trimmed) return 0;
+  return trimmed.split(/[.!?]+/).filter((part) => part.trim()).length || 1;
+}
+
 export type ResearchBriefFallback = {
   companyName?: string;
   personName?: string;
@@ -87,7 +93,12 @@ const researchBriefBaseSchema = z.object({
   priorities: stringList,
   // Lenient like the lists: a dropped summary shouldn't cost a failed
   // tool call plus a full retry turn.
-  summary: z.string().default(""),
+  summary: z
+    .string()
+    .refine((value) => sentenceCount(value) <= 3, {
+      message: "Research summary must be 3 sentences or fewer.",
+    })
+    .default(""),
   sources: stringList,
 });
 

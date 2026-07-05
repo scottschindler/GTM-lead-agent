@@ -4,7 +4,7 @@ description: Infer engineering problems the account is likely facing from resear
 
 # Hypothesis
 
-Generate 3–5 engineering hypotheses grounded only in the research brief.
+Generate exactly 2 engineering hypotheses grounded only in the research brief.
 
 For each hypothesis include:
 
@@ -31,6 +31,13 @@ Persist with `save_stage_output` stage `hypothesis`:
     {
       "statement": "...",
       "confidence": 0.7,
+      "evidence": ["..."],
+      "engineeringPain": "...",
+      "businessImpact": "..."
+    },
+    {
+      "statement": "...",
+      "confidence": 0.6,
       "evidence": ["..."],
       "engineeringPain": "...",
       "businessImpact": "..."

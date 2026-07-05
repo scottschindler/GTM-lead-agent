@@ -49,28 +49,32 @@ const qualificationSchema = z.object({
 });
 
 const hypothesisSchema = z.object({
-  hypotheses: z.array(
-    z.object({
-      statement: z.string(),
-      confidence: z.number().min(0).max(1),
-      evidence: z.array(z.string()),
-      engineeringPain: z.string(),
-      businessImpact: z.string(),
-    }),
-  ),
+  hypotheses: z
+    .array(
+      z.object({
+        statement: z.string(),
+        confidence: z.number().min(0).max(1),
+        evidence: z.array(z.string()),
+        engineeringPain: z.string(),
+        businessImpact: z.string(),
+      }),
+    )
+    .length(2),
 });
 
 const opportunitySchema = z.object({
-  opportunities: z.array(
-    z.object({
-      engineeringPain: z.string(),
-      vercelCapability: z.string(),
-      developerOutcome: z.string(),
-      businessImpact: z.string(),
-      estimatedRoi: z.string(),
-      priority: z.number(),
-    }),
-  ),
+  opportunities: z
+    .array(
+      z.object({
+        engineeringPain: z.string(),
+        vercelCapability: z.string(),
+        developerOutcome: z.string(),
+        businessImpact: z.string(),
+        estimatedRoi: z.string(),
+        priority: z.number(),
+      }),
+    )
+    .length(2),
 });
 
 const messagingSchema = z.object({
@@ -81,7 +85,7 @@ const messagingSchema = z.object({
   hooks: z.array(z.string()),
   cta: z.string(),
   customerExamples: z.array(z.string()),
-  likelyObjections: z.array(z.string()),
+  likelyObjections: z.array(z.string()).max(2),
 });
 
 const sequenceSchema = z.object({
@@ -118,9 +122,13 @@ const contentSchema = z.object({
   // The messaging strategy decided as the first step of content generation.
   messagingStrategy: messagingSchema.optional(),
   subjectLines: z.array(z.string()),
-  emailBody: z.string(),
+  emailBody: z
+    .string()
+    .refine((value) => wordCount(value) <= 120, {
+      message: "Email body must be 120 words or fewer.",
+    }),
   cta: z.string(),
-  objectionResponses: z.array(z.string()),
+  objectionResponses: z.array(z.string()).max(2),
   // Attached by create_landing_page; allowed here so re-saves don't drop it.
   landingPageSlug: z.string().optional(),
   landingPageUrl: z.string().optional(),
@@ -149,6 +157,10 @@ function emailBodyWithLandingPage(body: string, landingPageUrl?: string): string
   const trimmedUrl = landingPageUrl?.trim();
   if (!trimmedUrl || body.includes(trimmedUrl)) return body;
   return `${body.trim()}\n\nI put together a short page with more detail here: ${trimmedUrl}`;
+}
+
+function wordCount(value: string): number {
+  return value.trim().split(/\s+/).filter(Boolean).length;
 }
 
 export default defineTool({
@@ -266,6 +278,13 @@ export default defineTool({
             data.emailBody,
             data.landingPageUrl,
           );
+          if (wordCount(data.emailBody) > 120) {
+            return {
+              ok: false as const,
+              error:
+                "Invalid output for stage content_generation: Email body must be 120 words or fewer after the landing page URL is included.",
+            };
+          }
         }
       }
 

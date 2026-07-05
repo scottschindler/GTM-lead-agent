@@ -41,12 +41,12 @@ for this lead and stores the page content. It does **not** complete or write the
   saying this page was put together for them and why
 - `brandColor` — the prospect's primary brand color as 6-digit hex if you know
   it from research (e.g. Supabase green `#3ecf8e`); omit if unsure
-- `opportunities` — the top 2–4 items from opportunity mapping, rewritten as
+- `opportunities` — exactly the top 2 items from opportunity mapping, rewritten as
   prospect-facing pain → solution → outcome
-- `stories` — 2–3 real customer stories from opportunity mapping references
+- `stories` — 1–2 real customer stories from opportunity mapping references
   that best match this account, with the real metric and vercel.com URL. Never
   invent stories, metrics, or URLs.
-- `stats` — up to 4 headline proof numbers (Forrester TEI or story metrics)
+- `stats` — up to 2 headline proof numbers (Forrester TEI or story metrics)
 - `ctaLabel` / `ctaUrl` — match the CTA from step 1
 
 The tool returns the page `url`.
@@ -74,7 +74,7 @@ Requirements:
 - Match the tone and technical depth chosen in step 1
 - Offer 2–3 subject line options (each under 8 words)
 - Include a clear CTA
-- Save 1–3 short `objectionResponses` for the sender's reference only — do not
+- Save 1–2 short `objectionResponses` for the sender's reference only — do not
   expand the email body with them
 
 ## Step 4 — Persist and record

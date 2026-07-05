@@ -1,0 +1,68 @@
+import { defineEval } from "eve/evals";
+import { equals, satisfies } from "eve/evals/expect";
+
+import { getLead } from "../agent/lib/store";
+import type {
+  ContentGenerationOutput,
+  HypothesisOutput,
+  OpportunityMappingOutput,
+} from "../agent/lib/types";
+
+export default defineEval({
+  description:
+    "fast full-pipeline path uses researcher and pipeline_writer, saves 2/2 strategy outputs, queues a draft, and does not run learning.",
+  async test(t) {
+    const startedAt = Date.now();
+    await t.send("FULL_PIPELINE_EVAL: run the optimized full pipeline.");
+    const durationMs = Date.now() - startedAt;
+
+    t.succeeded();
+    t.calledTool("get_lead");
+    t.calledSubagent("researcher");
+    t.calledSubagent("pipeline_writer");
+    t.calledTool("create_landing_page");
+    t.calledTool("send_message");
+    t.calledTool("set_lead_outcome");
+    t.noFailedActions();
+    t.check(
+      durationMs,
+      satisfies(
+        (value): value is number => typeof value === "number" && value < 60_000,
+        "mock full-pipeline eval finishes under 60 seconds",
+      ),
+    );
+
+    const lead = await getLead("lead_eval_full");
+    await t.require(lead?.stages.research.status, equals("done"));
+    await t.require(lead?.stages.qualification.status, equals("done"));
+    await t.require(lead?.stages.hypothesis.status, equals("done"));
+    await t.require(lead?.stages.opportunity_mapping.status, equals("done"));
+    await t.require(lead?.stages.sequence_planning.status, equals("done"));
+    await t.require(lead?.stages.content_generation.status, equals("done"));
+
+    const hypotheses = lead?.stages.hypothesis.output as
+      | HypothesisOutput
+      | undefined;
+    await t.require(hypotheses?.hypotheses.length, equals(2));
+
+    const opportunities = lead?.stages.opportunity_mapping.output as
+      | OpportunityMappingOutput
+      | undefined;
+    await t.require(opportunities?.opportunities.length, equals(2));
+
+    const content = lead?.stages.content_generation.output as
+      | ContentGenerationOutput
+      | undefined;
+    await t.require(Boolean(content?.landingPageUrl), equals(true));
+    await t.require(
+      Boolean(
+        content?.landingPageUrl &&
+          content.emailBody.includes(content.landingPageUrl),
+      ),
+      equals(true),
+    );
+    await t.require(content?.send?.status, equals("drafted"));
+    await t.require(lead?.outcome, equals("nurture"));
+    await t.require(lead?.stages.learning.status, equals("pending"));
+  },
+});

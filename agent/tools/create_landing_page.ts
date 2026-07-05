@@ -76,19 +76,18 @@ export default defineTool({
       .describe("The prospect's primary brand color as a 6-digit hex, e.g. '#3ecf8e'. Omit if unknown."),
     opportunities: z
       .array(opportunitySchema)
-      .min(1)
-      .max(4)
-      .describe("The top opportunities from opportunity mapping, framed for the prospect"),
+      .length(2)
+      .describe("Exactly the top 2 opportunities from opportunity mapping, framed for the prospect"),
     stats: z
       .array(statSchema)
-      .max(4)
+      .max(2)
       .default([])
       .describe("Headline proof stats, e.g. Forrester TEI numbers or story metrics"),
     stories: z
       .array(storySchema)
       .min(1)
-      .max(3)
-      .describe("2-3 real Vercel customer stories that best match this account"),
+      .max(2)
+      .describe("1-2 real Vercel customer stories that best match this account"),
     ctaLabel: z.string().min(1).describe("Primary call-to-action label, e.g. 'Book 20 minutes with our team'"),
     ctaUrl: z.string().url().optional().describe("Where the CTA points; omit to use a mailto fallback"),
   }),

@@ -6,11 +6,11 @@ description: Map engineering pains to Vercel capabilities, outcomes, business im
 
 Read `references/vercel-capabilities.md` and `references/customer-stories.md` in this skill package for grounding.
 
-For each prioritized engineering pain (from hypotheses, or research if hypotheses were skipped), produce a chain:
+Produce exactly 2 prioritized opportunities from the strongest engineering pains (from hypotheses, or research if hypotheses were skipped). For each opportunity, produce a chain:
 
 Engineering pain → Vercel capability → Developer outcome → Business impact → Estimated ROI
 
-Prioritize highest-value opportunities first (`priority` 1 = highest).
+Prioritize highest-value opportunities first (`priority` 1 = highest, `priority` 2 = second).
 
 Persist with `save_stage_output` stage `opportunity_mapping`:
 
@@ -24,9 +24,17 @@ Persist with `save_stage_output` stage `opportunity_mapping`:
       "businessImpact": "...",
       "estimatedRoi": "...",
       "priority": 1
+    },
+    {
+      "engineeringPain": "...",
+      "vercelCapability": "...",
+      "developerOutcome": "...",
+      "businessImpact": "...",
+      "estimatedRoi": "...",
+      "priority": 2
     }
   ]
 }
 ```
 
-Only map to capabilities that are real in the references. Prefer concrete, account-specific language over generic platform marketing. When citing customer stories, pick the 2–3 whose situation best matches this account (industry, scale, stack) and use their real proof points and source URLs — never invent metrics or quotes.
+Only map to capabilities that are real in the references. Prefer concrete, account-specific language over generic platform marketing. When citing customer stories, pick at most 2 whose situation best matches this account (industry, scale, stack) and use their real proof points and source URLs — never invent metrics or quotes.
