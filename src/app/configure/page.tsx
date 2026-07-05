@@ -9,27 +9,42 @@ export const metadata: Metadata = {
     "Every knob and dial a salesperson can use to tune the lead factory agent.",
 };
 
-function SectionHeading({
+function CollapsibleSection({
   title,
   description,
+  children,
 }: {
   title: string;
   description: string;
+  children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-[var(--geist-border)] pb-3">
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <p className="mt-1 text-sm text-[var(--geist-muted)]">{description}</p>
-    </div>
+    <section>
+      <details className="group rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-surface)] shadow-[var(--geist-shadow)]">
+        <summary className="flex cursor-pointer list-none items-start justify-between gap-4 px-5 py-4 marker:hidden">
+          <span>
+            <span className="block text-xl font-semibold">{title}</span>
+            <span className="mt-1 block text-sm text-[var(--geist-muted)]">
+              {description}
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[var(--geist-border)] font-mono text-sm text-[var(--geist-muted)] transition group-open:rotate-45"
+          >
+            +
+          </span>
+        </summary>
+        <div className="border-t border-[var(--geist-border)] px-5 py-5">
+          {children}
+        </div>
+      </details>
+    </section>
   );
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-surface)] p-5 shadow-[var(--geist-shadow)]">
-      {children}
-    </div>
-  );
+  return <div>{children}</div>;
 }
 
 function Toggle({
@@ -185,11 +200,10 @@ export default function ConfigurePage() {
       <AppHeader subtitle="Configure" />
 
       <div className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-8">
-        <section className="flex flex-col gap-4">
-          <SectionHeading
-            title="ICP & qualification"
-            description="Define who is worth pursuing and where the bar sits. These feed the qualification skill's rubric and the disqualify threshold enforced in code."
-          />
+        <CollapsibleSection
+          title="ICP & qualification"
+          description="Define who is worth pursuing and where the bar sits. These feed the qualification skill's rubric and the disqualify threshold enforced in code."
+        >
           <Card>
             <Chips
               label="Ideal industries"
@@ -221,13 +235,12 @@ export default function ConfigurePage() {
               on={false}
             />
           </Card>
-        </section>
+        </CollapsibleSection>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeading
-            title="Research & enrichment"
-            description="Control how deep the researcher subagent digs and which sources it trusts."
-          />
+        <CollapsibleSection
+          title="Research & enrichment"
+          description="Control how deep the researcher subagent digs and which sources it trusts."
+        >
           <Card>
             <Select
               label="Research depth"
@@ -258,13 +271,12 @@ export default function ConfigurePage() {
               hint="Uncited findings are dropped from the brief."
             />
           </Card>
-        </section>
+        </CollapsibleSection>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeading
-            title="Messaging & content"
-            description="Shape how the agent writes. These feed the messaging-strategy and content-generation skills."
-          />
+        <CollapsibleSection
+          title="Messaging & content"
+          description="Shape how the agent writes. These feed the content-generation skill, which decides the messaging strategy before drafting."
+        >
           <Card>
             <Select
               label="Default tone"
@@ -304,13 +316,12 @@ export default function ConfigurePage() {
               hint="e.g. 'If this isn't relevant, tell me and I won't follow up.'"
             />
           </Card>
-        </section>
+        </CollapsibleSection>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeading
-            title="Sequence & sending"
-            description="Cadence, channels, timing windows, and the exit rules that stop outreach."
-          />
+        <CollapsibleSection
+          title="Sequence & sending"
+          description="Cadence, channels, timing windows, and the exit rules that stop outreach."
+        >
           <Card>
             <Chips
               label="Enabled channels"
@@ -343,17 +354,16 @@ export default function ConfigurePage() {
               value="Reply received; unsubscribe or negative sentiment; pricing page visit → escalate to handoff instead of next touch"
             />
           </Card>
-        </section>
+        </CollapsibleSection>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeading
-            title="Approvals & guardrails"
-            description="Where the human is always in the loop, and what the agent must never do."
-          />
+        <CollapsibleSection
+          title="Approvals & guardrails"
+          description="Where the human is always in the loop, and what the agent must never do."
+        >
           <Card>
             <Select
               label="Outbound send approval"
-              hint="Drafts queue in the Inbox; a BDR approval releases each send."
+              hint="Drafts queue in Dashboard; a BDR approval releases each send."
               options={["Every send", "First send per lead, then auto", "Auto under 50 words, approve otherwise", "Fully automatic"]}
               value="Every send"
             />
@@ -375,13 +385,12 @@ export default function ConfigurePage() {
               value="Vercel Inc. · 340 S Lemon Ave · You can reply 'stop' anytime."
             />
           </Card>
-        </section>
+        </CollapsibleSection>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeading
-            title="Human handoff"
-            description="When the AI should stop and a person should take over."
-          />
+        <CollapsibleSection
+          title="Human handoff"
+          description="When the AI should stop and a person should take over."
+        >
           <Card>
             <Chips
               label="Auto-escalate on"
@@ -400,13 +409,12 @@ export default function ConfigurePage() {
             <Toggle label="Include full conversation history in the brief" />
             <Toggle label="Draft suggested talking points" />
           </Card>
-        </section>
+        </CollapsibleSection>
 
-        <section className="flex flex-col gap-4">
-          <SectionHeading
-            title="Integrations & notifications"
-            description="Where the factory connects to the rest of the stack."
-          />
+        <CollapsibleSection
+          title="Integrations & notifications"
+          description="Where the factory connects to the rest of the stack."
+        >
           <Card>
             <Toggle label="CRM sync (Salesforce / HubSpot)" on={false} />
             <Toggle label="Email delivery via Resend" on={false} />
@@ -423,7 +431,7 @@ export default function ConfigurePage() {
               value="Off"
             />
           </Card>
-        </section>
+        </CollapsibleSection>
 
         <div className="flex items-center justify-end gap-2 border-t border-[var(--geist-border)] pt-6">
           <button

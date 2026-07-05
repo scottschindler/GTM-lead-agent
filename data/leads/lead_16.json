@@ -6,14 +6,14 @@
   "companyDomain": "datasette.io",
   "source": "newsletter",
   "timezone": "America/Los_Angeles",
-  "createdAt": "2026-07-04T02:30:40.793Z",
-  "updatedAt": "2026-07-04T02:30:40.793Z",
+  "createdAt": "2026-07-05T02:46:23.798Z",
+  "updatedAt": "2026-07-05T02:46:23.805Z",
   "currentStage": "intake",
   "outcome": "open",
   "stages": {
     "intake": {
       "status": "done",
-      "updatedAt": "2026-07-04T02:30:40.793Z",
+      "updatedAt": "2026-07-05T02:46:23.798Z",
       "output": {
         "leadId": "lead_16",
         "source": "newsletter"
@@ -21,39 +21,35 @@
     },
     "research": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.804Z"
     },
     "qualification": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.804Z"
     },
     "hypothesis": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.804Z"
     },
     "opportunity_mapping": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
-    },
-    "messaging_strategy": {
-      "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.804Z"
     },
     "sequence_planning": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.804Z"
     },
     "content_generation": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.804Z"
     },
     "engagement_intent": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.804Z"
     },
     "learning": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.804Z"
     }
   },
   "engagementEvents": [],

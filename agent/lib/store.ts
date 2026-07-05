@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
+import { buildDemoInboxLeads } from "./demo-inbox-state";
+import { bumpRunGeneration } from "./run-guard";
 import {
   SEED_LEAD_IDS,
   SEED_LEAD_PROFILES,
@@ -9,10 +11,12 @@ import {
 } from "./seed-leads";
 import {
   DEFAULT_PIPELINE_CONFIG,
+  TOGGLEABLE_STAGES,
   emptyStages,
   type ActivityEvent,
   type ContentGenerationOutput,
   type EngagementEvent,
+  type EngagementIntentOutput,
   type LandingPage,
   type Lead,
   type LearningInsight,
@@ -39,16 +43,28 @@ function leadPath(id: string): string {
   return path.join(LEADS_DIR, `${id}.json`);
 }
 
+// Only keep known toggleable stage keys — drops stale keys (e.g. a
+// previously-toggleable stage that has since moved out of the pipeline) that
+// may still linger in an old config file on disk.
+function sanitizeStages(
+  stages: Partial<Record<ToggleableStage, boolean>> | undefined,
+): Record<ToggleableStage, boolean> {
+  const next = { ...DEFAULT_PIPELINE_CONFIG.stages };
+  for (const stage of TOGGLEABLE_STAGES) {
+    if (stages?.[stage] !== undefined) {
+      next[stage] = stages[stage] as boolean;
+    }
+  }
+  return next;
+}
+
 export async function readPipelineConfig(): Promise<PipelineConfig> {
   await ensureDirs();
   try {
     const raw = await fs.readFile(CONFIG_PATH, "utf8");
     const parsed = JSON.parse(raw) as Partial<PipelineConfig>;
     return {
-      stages: {
-        ...DEFAULT_PIPELINE_CONFIG.stages,
-        ...parsed.stages,
-      },
+      stages: sanitizeStages(parsed.stages),
       landingPages:
         parsed.landingPages ?? DEFAULT_PIPELINE_CONFIG.landingPages,
     };
@@ -62,10 +78,7 @@ export async function writePipelineConfig(
 ): Promise<PipelineConfig> {
   await ensureDirs();
   const next: PipelineConfig = {
-    stages: {
-      ...DEFAULT_PIPELINE_CONFIG.stages,
-      ...config.stages,
-    },
+    stages: sanitizeStages(config.stages),
     landingPages:
       config.landingPages ?? DEFAULT_PIPELINE_CONFIG.landingPages,
   };
@@ -107,6 +120,95 @@ export async function getLead(id: string): Promise<Lead | null> {
   } catch {
     return null;
   }
+}
+
+function normalized(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function normalizedDomain(value: string): string {
+  return normalized(value)
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/$/, "");
+}
+
+function extractEmail(value: string): string | null {
+  return (
+    value.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i)?.[0].toLowerCase() ??
+    null
+  );
+}
+
+function uniqueLeadMatch(
+  leads: Lead[],
+  predicate: (lead: Lead) => boolean,
+): Lead | null {
+  const matches = leads.filter(predicate);
+  return matches.length === 1 ? matches[0] : null;
+}
+
+export type LeadReferenceResolution = {
+  lead: Lead | null;
+  matchedBy?: "id" | "email" | "name" | "companyDomain" | "company";
+  ambiguousCandidates?: string[];
+};
+
+export async function resolveLeadReference(
+  reference: string,
+): Promise<LeadReferenceResolution> {
+  const value = reference.trim();
+  if (!value) return { lead: null };
+
+  const exact = await getLead(value);
+  if (exact) return { lead: exact, matchedBy: "id" };
+
+  const leads = await listLeads();
+  const key = normalized(value);
+  const email = extractEmail(value);
+  const domain = normalizedDomain(value);
+
+  const match =
+    uniqueLeadMatch(leads, (lead) => normalized(lead.id) === key) ??
+    (email
+      ? uniqueLeadMatch(leads, (lead) => normalized(lead.email) === email)
+      : null) ??
+    uniqueLeadMatch(leads, (lead) => normalized(lead.name) === key) ??
+    uniqueLeadMatch(
+      leads,
+      (lead) => normalizedDomain(lead.companyDomain) === domain,
+    ) ??
+    uniqueLeadMatch(leads, (lead) => normalized(lead.company) === key);
+
+  if (match) {
+    const matchedBy =
+      normalized(match.id) === key
+        ? "id"
+        : email && normalized(match.email) === email
+          ? "email"
+          : normalized(match.name) === key
+            ? "name"
+            : normalizedDomain(match.companyDomain) === domain
+              ? "companyDomain"
+              : "company";
+    return { lead: match, matchedBy };
+  }
+
+  const ambiguous = leads
+    .filter(
+      (lead) =>
+        normalized(lead.id) === key ||
+        (email && normalized(lead.email) === email) ||
+        normalized(lead.name) === key ||
+        normalizedDomain(lead.companyDomain) === domain ||
+        normalized(lead.company) === key,
+    )
+    .map((lead) => lead.id);
+
+  return {
+    lead: null,
+    ambiguousCandidates: ambiguous.length > 1 ? ambiguous : undefined,
+  };
 }
 
 export async function saveLead(lead: Lead): Promise<Lead> {
@@ -531,11 +633,74 @@ export async function recordEngagement(
 }
 
 /**
+ * Engagement & Intent is not part of the automatic pipeline — it only makes
+ * sense once a lead has already been through the pipeline and a BDR has
+ * approved and released a send. This is triggered manually from the Reviews
+ * screen (or on request via the `simulate_engagement` tool).
+ */
+export async function runEngagementSimulation(leadId: string): Promise<Lead> {
+  const lead = await getLead(leadId);
+  if (!lead) {
+    throw new Error(`Lead not found: ${leadId}`);
+  }
+
+  const content = lead.stages.content_generation?.output as
+    | ContentGenerationOutput
+    | undefined;
+  if (content?.send?.status !== "approved") {
+    throw new Error(
+      "Engagement simulation is only available after a lead's outreach has been approved and sent.",
+    );
+  }
+
+  const simulation = simulateEngagement(leadId);
+  await recordEngagement(leadId, simulation.events, simulation.intentScore);
+
+  const recommendedNextAction =
+    simulation.intentScore >= 7
+      ? "High intent detected — escalate to a human rep for follow-up."
+      : "Continue monitoring; no immediate action required.";
+
+  const output: EngagementIntentOutput = {
+    simulated: true,
+    events: simulation.events,
+    intentScore: simulation.intentScore,
+    confidence: simulation.confidence,
+    signalBreakdown: simulation.signalBreakdown,
+    recommendedNextAction,
+  };
+
+  const saved = await saveStageOutput(leadId, "engagement_intent", output);
+
+  await appendActivity({
+    type: "engagement.simulated",
+    summary: `Engagement simulated for ${lead.name} — intent score ${simulation.intentScore}/10`,
+    detail: { leadId, intentScore: simulation.intentScore },
+  });
+
+  return saved;
+}
+
+export type ResetFactoryMode = "clean" | "demo";
+
+/**
  * Reset the factory to its initial state: all seed leads back to pending,
  * dynamically created lead files removed, and the activity log truncated.
+ *
+ * Pass `mode: "demo"` to seed 2 drafted + 4 approved leads for the interview
+ * review-queue opening state; remaining seeds stay fresh/pending.
  */
-export async function resetFactory(): Promise<Lead[]> {
+export async function resetFactory(
+  options: { mode?: ResetFactoryMode } = {},
+): Promise<Lead[]> {
+  const mode = options.mode ?? "clean";
   await ensureDirs();
+
+  // Kill switch: any pipeline run still executing server-side (the client
+  // "Reset" button only aborts the browser's own stream) will find its
+  // generation stale on its next write and stop instead of persisting on
+  // top of the freshly-reset leads below.
+  await bumpRunGeneration();
 
   const files = await fs.readdir(LEADS_DIR);
   for (const file of files) {
@@ -555,8 +720,22 @@ export async function resetFactory(): Promise<Lead[]> {
 
   const now = new Date().toISOString();
   const leads: Lead[] = [];
-  for (const profile of SEED_LEAD_PROFILES) {
-    leads.push(await saveLead(buildFreshSeedLead(profile, now)));
+
+  if (mode === "demo") {
+    const demoLeads = buildDemoInboxLeads(now);
+    const demoById = new Map(demoLeads.map((lead) => [lead.id, lead]));
+    for (const profile of SEED_LEAD_PROFILES) {
+      const demoLead = demoById.get(profile.id);
+      if (demoLead) {
+        leads.push(await saveLead(demoLead));
+      } else {
+        leads.push(await saveLead(buildFreshSeedLead(profile, now)));
+      }
+    }
+  } else {
+    for (const profile of SEED_LEAD_PROFILES) {
+      leads.push(await saveLead(buildFreshSeedLead(profile, now)));
+    }
   }
 
   await fs.writeFile(ACTIVITY_PATH, "", "utf8");

@@ -1,20 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEveAgent } from "eve/react";
 
+import {
+  humanizeActivitySummary,
+  shouldShowLivePipelineEvent,
+} from "../../agent/lib/activity-copy";
+import { SEED_LEAD_IDS } from "../../agent/lib/seed-leads";
 import type {
   ActivityEvent,
   Lead,
   PipelineConfig,
   PipelineStage,
   StageRecord,
-  ToggleableStage,
 } from "../../agent/lib/types";
 import {
   STAGE_LABELS,
   STAGE_ORDER,
-  TOGGLE_LABELS,
   buildRunMessage,
 } from "../lib/pipeline";
 import { StageOutput } from "./stage-output";
@@ -29,7 +32,7 @@ type InputRequest = {
 function statusColor(status: StageRecord["status"]): string {
   switch (status) {
     case "done":
-      return "var(--geist-success)";
+      return "var(--geist-complete, #3fb950)";
     case "running":
       return "var(--geist-cyan)";
     case "skipped":
@@ -72,33 +75,30 @@ function Spinner() {
   );
 }
 
-function ActivityDetail({ event }: { event: ActivityEvent }) {
-  const detail = event.detail as Record<string, unknown> | undefined;
-  if (!detail || Object.keys(detail).length === 0) return null;
-  return (
-    <details className="mt-1">
-      <summary className="cursor-pointer text-[11px] text-[var(--geist-muted)]">
-        detail
-      </summary>
-      <pre className="mt-1 max-h-48 overflow-auto whitespace-pre-wrap rounded-[8px] bg-[var(--geist-subtle)] p-2 font-sans text-[11px] text-[var(--geist-muted)]">
-        {Object.entries(detail)
-          .map(([key, value]) => `${key}: ${String(value)}`)
-          .join("\n\n")}
-      </pre>
-    </details>
-  );
-}
-
-const NOISE_EVENT_TYPES = new Set([
-  "step.completed",
-  "turn.completed",
-  "session.waiting",
-]);
-
 // Leads written before a stage existed won't have a record for it.
 function stageRecord(lead: Lead, stage: PipelineStage): StageRecord {
   return (
     lead.stages[stage] ?? { status: "pending", updatedAt: lead.createdAt }
+  );
+}
+
+function leadHasResettableState(lead: Lead): boolean {
+  return (
+    !SEED_LEAD_IDS.has(lead.id) ||
+    lead.currentStage !== "intake" ||
+    lead.outcome !== "open" ||
+    lead.intentScore !== 0 ||
+    lead.engagementEvents.length > 0 ||
+    lead.recommendedNextAction !== undefined ||
+    Object.entries(lead.stages).some(([stage, record]) => {
+      if (stage === "intake") return record.status !== "done";
+      return (
+        record.status !== "pending" ||
+        record.output !== undefined ||
+        record.error !== undefined ||
+        record.note !== undefined
+      );
+    })
   );
 }
 
@@ -116,12 +116,13 @@ function StageCard({
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
-    if (running) setOpen(true);
+    if (!running) return;
+    const id = window.setTimeout(() => setOpen(true), 0);
+    return () => window.clearTimeout(id);
   }, [running]);
 
-  const displayStatus = running ? "running" : record.status;
   const log = running
-    ? liveEvents.filter((event) => !NOISE_EVENT_TYPES.has(event.type)).slice(0, 8)
+    ? liveEvents.filter(shouldShowLivePipelineEvent).slice(0, 8)
     : [];
   const expanded = open || running;
 
@@ -146,12 +147,6 @@ function StageCard({
           )}
           <div>
             <div className="text-sm font-medium">{STAGE_LABELS[stage]}</div>
-            <div className="text-xs text-[var(--geist-muted)]">
-              {displayStatus}
-              {record.status !== "pending" && record.updatedAt
-                ? ` · ${new Date(record.updatedAt).toLocaleTimeString()}`
-                : ""}
-            </div>
           </div>
         </div>
         <span className="text-xs text-[var(--geist-muted)]">
@@ -161,7 +156,7 @@ function StageCard({
       {running && log.length > 0 ? (
         <div className="border-t border-[var(--geist-border)] px-4 py-3">
           <div className="mb-2 text-[11px] uppercase tracking-wide text-[var(--geist-muted)]">
-            live agent log
+            progress
           </div>
           <div className="space-y-2">
             {log.map((event) => (
@@ -170,9 +165,8 @@ function StageCard({
                   <span className="text-[11px] text-[var(--geist-muted)]">
                     {new Date(event.timestamp).toLocaleTimeString()}
                   </span>{" "}
-                  {event.summary}
+                  {humanizeActivitySummary(event)}
                 </div>
-                <ActivityDetail event={event} />
               </div>
             ))}
           </div>
@@ -202,7 +196,9 @@ export function FactoryDashboard() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [stageTogglesOpen, setStageTogglesOpen] = useState(false);
+  const [showPrevLead, setShowPrevLead] = useState(false);
+  const [runSubmitting, setRunSubmitting] = useState(false);
+  const runSubmittingRef = useRef(false);
 
   const refreshLeads = useCallback(async () => {
     const response = await fetch("/api/leads", { cache: "no-store" });
@@ -270,7 +266,7 @@ export function FactoryDashboard() {
     (activity[0].type === "turn.completed" ||
       activity[0].type === "session.waiting");
 
-  const isBusy = agentBusy && !serverTurnEnded;
+  const isBusy = runSubmitting || (agentBusy && !serverTurnEnded);
 
   // If the server says the turn ended but the client stream never closed,
   // abort the stale stream so a new run can start. The grace period avoids
@@ -282,20 +278,13 @@ export function FactoryDashboard() {
   }, [serverTurnEnded, agentBusy, stopAgent]);
 
   useEffect(() => {
-    if (!isBusy && agent.status !== "ready") return;
+    if (!agentBusy) return;
     const id = window.setInterval(() => {
       void refreshLeads();
       void refreshActivity();
-    }, isBusy ? 1500 : 4000);
+    }, 1500);
     return () => window.clearInterval(id);
-  }, [isBusy, agent.status, refreshActivity, refreshLeads]);
-
-  const pendingLeads = useMemo(
-    () => leads.filter((item) => item.outcome === "open"),
-    [leads],
-  );
-
-  const nextLead = pendingLeads[0] ?? null;
+  }, [agentBusy, refreshActivity, refreshLeads]);
 
   const lead = useMemo(() => {
     if (leads.length === 0) return null;
@@ -305,6 +294,23 @@ export function FactoryDashboard() {
     return leads[0];
   }, [activeLeadId, leads]);
 
+  const canRunActiveLead = lead?.outcome === "open";
+  const hasResettableState =
+    agentBusy || activity.length > 0 || leads.some(leadHasResettableState);
+
+  const activeLeadIndex = useMemo(
+    () => (lead ? leads.findIndex((item) => item.id === lead.id) : -1),
+    [lead, leads],
+  );
+
+  function goToLead(offset: number) {
+    if (leads.length === 0) return;
+    if (offset > 0) setShowPrevLead(true);
+    const current = activeLeadIndex >= 0 ? activeLeadIndex : 0;
+    const index = (current + offset + leads.length) % leads.length;
+    setActiveLeadId(leads[index].id);
+  }
+
   const inputRequest = useMemo(
     () =>
       findInputRequest(
@@ -313,11 +319,14 @@ export function FactoryDashboard() {
     [agent.data.messages],
   );
 
-  // While the agent is busy, the first stage that has produced no result yet
-  // is the one currently being worked on.
+  // While the agent is busy, an explicitly running stage is authoritative.
+  // Otherwise, the first stage with no result yet is the one being worked on.
   const activeStage = useMemo<PipelineStage | null>(() => {
     if (!lead) return null;
     return (
+      STAGE_ORDER.find(
+        (stage) => stageRecord(lead, stage).status === "running",
+      ) ??
       STAGE_ORDER.find(
         (stage) => stageRecord(lead, stage).status === "pending",
       ) ?? null
@@ -336,36 +345,27 @@ export function FactoryDashboard() {
     return activity.filter((event) => event.timestamp > lastStageWrite);
   }, [activity, lead]);
 
-  async function toggleStage(stage: ToggleableStage) {
-    if (!config) return;
-    const next: PipelineConfig = {
-      ...config,
-      stages: {
-        ...config.stages,
-        [stage]: !config.stages[stage],
-      },
-    };
-    setConfig(next);
-    const response = await fetch("/api/pipeline-config", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(next),
-    });
-    if (!response.ok) {
-      setError("Failed to update pipeline config");
-      await refreshConfig();
-    }
-  }
-
   async function runPipeline() {
-    if (!nextLead || !config || isBusy) return;
+    if (
+      !lead ||
+      !config ||
+      isBusy ||
+      runSubmittingRef.current ||
+      !canRunActiveLead
+    ) {
+      return;
+    }
+    runSubmittingRef.current = true;
+    setRunSubmitting(true);
     setError(null);
-    setActiveLeadId(nextLead.id);
     try {
-      await agent.send({ message: buildRunMessage(nextLead, config) });
+      await agent.send({ message: buildRunMessage(lead, config) });
       await Promise.all([refreshLeads(), refreshActivity()]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to run pipeline");
+    } finally {
+      runSubmittingRef.current = false;
+      setRunSubmitting(false);
     }
   }
 
@@ -376,6 +376,8 @@ export function FactoryDashboard() {
     } catch {
       // no active request to stop
     }
+    runSubmittingRef.current = false;
+    setRunSubmitting(false);
     agent.reset();
     try {
       const response = await fetch("/api/reset", { method: "POST" });
@@ -383,6 +385,7 @@ export function FactoryDashboard() {
       const data = (await response.json()) as { leads: Lead[] };
       setLeads(data.leads);
       setActiveLeadId(data.leads[0]?.id ?? null);
+      setShowPrevLead(false);
       setActivity([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Reset failed");
@@ -419,33 +422,42 @@ export function FactoryDashboard() {
 
   const runLabel = isBusy
     ? "Running…"
-    : nextLead
-      ? `Run pipeline (${nextLead.name})`
-      : "All leads processed";
+    : lead && canRunActiveLead
+      ? "Run pipeline"
+      : lead
+        ? "Lead processed"
+        : "Run pipeline";
 
   return (
     <div className="min-h-screen bg-[var(--geist-background)] text-[var(--geist-foreground)]">
-      <AppHeader subtitle="Factory" />
+      <AppHeader subtitle="Pipeline" />
 
       <main className="mx-auto grid max-w-4xl gap-8 px-4 py-8">
-        <div className="flex items-center justify-between gap-4">
-          <span className="font-mono text-sm text-[var(--geist-muted)]">
-            {leads.length} total leads
-            {pendingLeads.length > 0
-              ? ` · ${pendingLeads.length} pending`
-              : null}
-          </span>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-sm font-medium">
+              New leads{" "}
+              <span className="text-[var(--geist-muted)]">
+                (pulled from Salesforce)
+              </span>
+            </div>
+            <div className="mt-1 font-mono text-xs text-[var(--geist-muted)]">
+              {activeLeadIndex + 1} / {leads.length}
+            </div>
+          </div>
           <div className="flex items-center gap-2">
+            {hasResettableState ? (
+              <button
+                type="button"
+                onClick={() => void resetEverything()}
+                className="geist-btn geist-btn-secondary"
+              >
+                Reset
+              </button>
+            ) : null}
             <button
               type="button"
-              onClick={() => void resetEverything()}
-              className="geist-btn geist-btn-secondary"
-            >
-              Reset everything
-            </button>
-            <button
-              type="button"
-              disabled={isBusy || !nextLead}
+              disabled={isBusy || !canRunActiveLead}
               onClick={() => void runPipeline()}
               className="geist-btn geist-btn-primary"
             >
@@ -460,110 +472,67 @@ export function FactoryDashboard() {
           </div>
         ) : null}
 
-        <section className="rounded-[8px] border border-[var(--geist-border)] p-4">
-          <div className="mb-3 text-sm font-medium">Lead queue</div>
-          <div className="divide-y divide-[var(--geist-border)] rounded-[8px] border border-[var(--geist-border)]">
-            {leads.map((item) => {
-              const selected = item.id === lead.id;
-              const pending = item.outcome === "open";
-              const queuedNext = nextLead?.id === item.id && pending;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => setActiveLeadId(item.id)}
-                  className={`flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition ${
-                    selected
-                      ? "bg-[var(--geist-subtle)]"
-                      : "hover:bg-[var(--geist-hover)]"
-                  }`}
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium">{item.name}</div>
-                    <div className="truncate text-xs text-[var(--geist-muted)]">
-                      {item.company} · {item.source}
-                    </div>
-                  </div>
-                  <div className="shrink-0 text-right text-xs text-[var(--geist-muted)]">
-                    {queuedNext ? (
-                      <span className="text-[var(--geist-success)]">Up next</span>
-                    ) : pending ? (
-                      "Pending"
-                    ) : (
-                      item.outcome
-                    )}
-                  </div>
-                </button>
-              );
-            })}
+        <div className="grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-3">
+          <div className="h-9 w-9">
+            <button
+              type="button"
+              onClick={() => goToLead(-1)}
+              aria-label="Previous lead"
+              tabIndex={showPrevLead ? 0 : -1}
+              className={`inline-flex h-9 w-9 items-center justify-center rounded-[8px] border border-[var(--geist-border)] text-[var(--geist-muted)] transition hover:bg-[var(--geist-hover)] hover:text-[var(--geist-foreground)] ${
+                showPrevLead ? "" : "invisible pointer-events-none"
+              }`}
+            >
+              ←
+            </button>
           </div>
-        </section>
-
-        <section className="rounded-[8px] border border-[var(--geist-border)] p-4">
-          <div className="mb-3 text-sm font-medium">Active lead</div>
-          <div className="grid gap-2 text-sm sm:grid-cols-2">
-            <div>
-              <span className="text-[var(--geist-muted)]">Name</span>
-              <div>{lead.name}</div>
+          <section className="min-w-0 flex-1 rounded-[8px] border border-[var(--geist-border)] p-4">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="text-sm font-medium">Active lead</div>
+              <span className="font-mono text-xs text-[var(--geist-muted)]">
+                {activeLeadIndex + 1} / {leads.length}
+              </span>
             </div>
-            <div>
-              <span className="text-[var(--geist-muted)]">Email</span>
-              <div className="text-xs">{lead.email}</div>
-            </div>
-            <div>
-              <span className="text-[var(--geist-muted)]">Company</span>
+            <div className="grid gap-2 text-sm sm:grid-cols-2">
               <div>
-                {lead.company}{" "}
-                <span className="text-xs text-[var(--geist-muted)]">
-                  ({lead.companyDomain})
-                </span>
+                <span className="text-[var(--geist-muted)]">Name</span>
+                <div>{lead.name}</div>
+              </div>
+              <div>
+                <span className="text-[var(--geist-muted)]">Email</span>
+                <div className="text-xs">{lead.email}</div>
+              </div>
+              <div>
+                <span className="text-[var(--geist-muted)]">Company</span>
+                <div>
+                  {lead.company}{" "}
+                  <span className="text-xs text-[var(--geist-muted)]">
+                    ({lead.companyDomain})
+                  </span>
+                </div>
+              </div>
+              <div>
+                <span className="text-[var(--geist-muted)]">Outcome / stage</span>
+                <div className="text-xs">
+                  {lead.outcome} · {lead.currentStage}
+                </div>
               </div>
             </div>
-            <div>
-              <span className="text-[var(--geist-muted)]">Outcome / stage</span>
-              <div className="text-xs">
-                {lead.outcome} · {lead.currentStage}
-              </div>
-            </div>
-          </div>
-          {lead.recommendedNextAction ? (
-            <p className="mt-3 text-sm text-[var(--geist-muted)]">
-              Next: {lead.recommendedNextAction}
-            </p>
-          ) : null}
-        </section>
-
-        <section className="rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-background)]">
+            {lead.recommendedNextAction ? (
+              <p className="mt-3 text-sm text-[var(--geist-muted)]">
+                Next: {lead.recommendedNextAction}
+              </p>
+            ) : null}
+          </section>
           <button
             type="button"
-            onClick={() => setStageTogglesOpen((value) => !value)}
-            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
+            onClick={() => goToLead(1)}
+            aria-label="Next lead"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-[var(--geist-border)] text-[var(--geist-muted)] transition hover:bg-[var(--geist-hover)] hover:text-[var(--geist-foreground)]"
           >
-            <div className="text-sm font-medium">Stage toggles</div>
-            <span className="text-xs text-[var(--geist-muted)]">
-              {stageTogglesOpen ? "Hide" : "Show"}
-            </span>
+            →
           </button>
-          {stageTogglesOpen ? (
-            <div className="border-t border-[var(--geist-border)] px-4 py-3">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {(Object.keys(TOGGLE_LABELS) as ToggleableStage[]).map((stage) => (
-                  <label
-                    key={stage}
-                    className="flex items-center justify-between gap-3 rounded-[8px] border border-[var(--geist-border)] px-3 py-2 text-sm"
-                  >
-                    <span>{TOGGLE_LABELS[stage]}</span>
-                    <input
-                      type="checkbox"
-                      checked={config.stages[stage]}
-                      onChange={() => void toggleStage(stage)}
-                    />
-                  </label>
-                ))}
-              </div>
-            </div>
-          ) : null}
-        </section>
+        </div>
 
         {inputRequest ? (
           <section className="rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-subtle)] p-4">
@@ -607,35 +576,6 @@ export function FactoryDashboard() {
               liveEvents={stage === activeStage ? activeStageEvents : []}
             />
           ))}
-        </section>
-
-        <section>
-          <div>
-            <div className="mb-3 text-sm font-medium">Activity feed</div>
-            <div className="max-h-[28rem] space-y-2 overflow-y-auto rounded-[8px] border border-[var(--geist-border)] p-3">
-              {activity.length === 0 ? (
-                <p className="text-sm text-[var(--geist-muted)]">
-                  Background events will stream here.
-                </p>
-              ) : (
-                activity
-                  .filter((event) => !NOISE_EVENT_TYPES.has(event.type))
-                  .map((event) => (
-                    <div
-                      key={event.id}
-                      className="border-b border-[var(--geist-border)] pb-2 last:border-b-0"
-                    >
-                      <div className="text-[11px] text-[var(--geist-muted)]">
-                        {new Date(event.timestamp).toLocaleTimeString()} ·{" "}
-                        {event.type}
-                      </div>
-                      <div className="text-sm">{event.summary}</div>
-                      <ActivityDetail event={event} />
-                    </div>
-                  ))
-              )}
-            </div>
-          </div>
         </section>
       </main>
     </div>

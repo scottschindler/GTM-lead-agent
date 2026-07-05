@@ -1,39 +1,26 @@
 import { defineAgent } from "eve";
 import { z } from "zod";
 
-const researchBriefSchema = z.object({
-  company: z.object({
-    name: z.string(),
-    industry: z.string().optional(),
-    employeeCount: z.string().optional(),
-    funding: z.string().optional(),
-    techStack: z.array(z.string()),
-    recentNews: z.array(z.string()),
-    growthSignals: z.array(z.string()),
-    sources: z.array(z.string()),
-  }),
-  person: z.object({
-    name: z.string(),
-    title: z.string().optional(),
-    seniority: z.string().optional(),
-    technicalBackground: z.string().optional(),
-    decisionMakingAuthority: z.string().optional(),
-    sources: z.array(z.string()),
-  }),
-  initiatives: z.array(z.string()),
-  aiInitiatives: z.array(z.string()),
-  priorities: z.array(z.string()),
+// The full brief is persisted by the save_research_brief tool; the subagent
+// returns only this compact receipt so the foreman never has to re-emit the
+// brief through a slow model turn.
+const researchResultSchema = z.object({
+  saved: z.boolean(),
+  leadId: z.string(),
   summary: z.string(),
-  sources: z.array(z.string()),
+  techStack: z.array(z.string()),
+  personTitle: z.string().optional(),
 });
 
 export default defineAgent({
   description:
-    "Fast, focused web research on a company and contact. Returns a compact research brief for GTM qualification and personalization.",
+    "Fast, focused web research on a company and contact. Persists the research brief for the lead itself and returns a short receipt with the summary.",
   // Haiku keeps research turns fast; the brief is simple enough not to need Sonnet.
   model: "anthropic/claude-haiku-4.5",
-  reasoning: "low",
-  outputSchema: researchBriefSchema,
+  // The protocol is fully prescribed in instructions; thinking tokens on every
+  // turn are pure latency here.
+  reasoning: "none",
+  outputSchema: researchResultSchema,
   limits: {
     maxInputTokensPerSession: 150_000,
     maxOutputTokensPerSession: 20_000,

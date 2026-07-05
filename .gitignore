@@ -26,6 +26,7 @@
 /data/activity.jsonl
 /data/leads/lead_eval_*.json
 /data/insights.json
+/data/run-state.json
 
 # production
 /build

@@ -256,7 +256,7 @@ const agents: Agent[] = [
 export default function AgentsPage() {
   return (
     <main className="min-h-screen bg-[var(--geist-background)] text-[var(--geist-foreground)]">
-      <AppHeader subtitle="Architecture" />
+      <AppHeader />
 
       <section className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-8 sm:px-6">
         <section className="flex flex-col gap-6 border-b border-[var(--geist-border)] pb-8">

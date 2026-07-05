@@ -4,10 +4,8 @@
     "qualification": true,
     "hypothesis": true,
     "opportunity_mapping": true,
-    "messaging_strategy": true,
     "sequence_planning": true,
     "content_generation": true,
-    "engagement_intent": true,
     "learning": true
   },
   "landingPages": true

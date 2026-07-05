@@ -4,7 +4,6 @@ export const PIPELINE_STAGES = [
   "qualification",
   "hypothesis",
   "opportunity_mapping",
-  "messaging_strategy",
   "sequence_planning",
   "content_generation",
   "engagement_intent",
@@ -18,10 +17,8 @@ export const TOGGLEABLE_STAGES = [
   "qualification",
   "hypothesis",
   "opportunity_mapping",
-  "messaging_strategy",
   "sequence_planning",
   "content_generation",
-  "engagement_intent",
   "learning",
 ] as const;
 
@@ -172,6 +169,9 @@ export type SendRecord = {
 };
 
 export type ContentGenerationOutput = {
+  // The messaging strategy the copy is written from — decided as the first
+  // step of content generation (formerly its own pipeline stage).
+  messagingStrategy?: MessagingStrategyOutput;
   subjectLines: string[];
   emailBody: string;
   cta: string;
@@ -268,7 +268,6 @@ export type LeadStages = {
   qualification: StageRecord<QualificationOutput>;
   hypothesis: StageRecord<HypothesisOutput>;
   opportunity_mapping: StageRecord<OpportunityMappingOutput>;
-  messaging_strategy: StageRecord<MessagingStrategyOutput>;
   sequence_planning: StageRecord<SequencePlanningOutput>;
   content_generation: StageRecord<ContentGenerationOutput>;
   engagement_intent: StageRecord<EngagementIntentOutput>;
@@ -308,10 +307,8 @@ export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
     qualification: true,
     hypothesis: true,
     opportunity_mapping: true,
-    messaging_strategy: true,
     sequence_planning: true,
     content_generation: true,
-    engagement_intent: true,
     learning: true,
   },
   landingPages: true,
@@ -329,7 +326,6 @@ export function emptyStages(): LeadStages {
     qualification: pending(),
     hypothesis: pending(),
     opportunity_mapping: pending(),
-    messaging_strategy: pending(),
     sequence_planning: pending(),
     content_generation: pending(),
     engagement_intent: pending(),

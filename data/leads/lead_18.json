@@ -6,14 +6,14 @@
   "companyDomain": "polytomic.com",
   "source": "referral",
   "timezone": "Europe/Vienna",
-  "createdAt": "2026-07-04T02:30:40.793Z",
-  "updatedAt": "2026-07-04T02:30:40.793Z",
+  "createdAt": "2026-07-05T02:46:23.798Z",
+  "updatedAt": "2026-07-05T02:46:23.806Z",
   "currentStage": "intake",
   "outcome": "open",
   "stages": {
     "intake": {
       "status": "done",
-      "updatedAt": "2026-07-04T02:30:40.793Z",
+      "updatedAt": "2026-07-05T02:46:23.798Z",
       "output": {
         "leadId": "lead_18",
         "source": "referral"
@@ -21,39 +21,35 @@
     },
     "research": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.806Z"
     },
     "qualification": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.806Z"
     },
     "hypothesis": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.806Z"
     },
     "opportunity_mapping": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
-    },
-    "messaging_strategy": {
-      "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.806Z"
     },
     "sequence_planning": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.806Z"
     },
     "content_generation": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.806Z"
     },
     "engagement_intent": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.806Z"
     },
     "learning": {
       "status": "pending",
-      "updatedAt": "2026-07-04T02:30:40.793Z"
+      "updatedAt": "2026-07-05T02:46:23.806Z"
     }
   },
   "engagementEvents": [],

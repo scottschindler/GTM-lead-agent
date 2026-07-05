@@ -1,13 +1,13 @@
 {
-  "id": "lead_19",
-  "name": "Maël Nison",
-  "email": "mael@yarnpkg.com",
-  "company": "Yarn",
-  "companyDomain": "yarnpkg.com",
-  "source": "github-star",
-  "timezone": "Europe/Paris",
+  "id": "lead_21",
+  "name": "Jarred Sumner",
+  "email": "jarred@bun.sh",
+  "company": "Bun",
+  "companyDomain": "bun.sh",
+  "source": "demo-request",
+  "timezone": "America/Los_Angeles",
   "createdAt": "2026-07-05T02:46:23.798Z",
-  "updatedAt": "2026-07-05T02:46:23.806Z",
+  "updatedAt": "2026-07-05T02:46:23.807Z",
   "currentStage": "intake",
   "outcome": "open",
   "stages": {
@@ -15,41 +15,41 @@
       "status": "done",
       "updatedAt": "2026-07-05T02:46:23.798Z",
       "output": {
-        "leadId": "lead_19",
-        "source": "github-star"
+        "leadId": "lead_21",
+        "source": "demo-request"
       }
     },
     "research": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.806Z"
+      "updatedAt": "2026-07-05T02:46:23.807Z"
     },
     "qualification": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.806Z"
+      "updatedAt": "2026-07-05T02:46:23.807Z"
     },
     "hypothesis": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.806Z"
+      "updatedAt": "2026-07-05T02:46:23.807Z"
     },
     "opportunity_mapping": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.806Z"
+      "updatedAt": "2026-07-05T02:46:23.807Z"
     },
     "sequence_planning": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.806Z"
+      "updatedAt": "2026-07-05T02:46:23.807Z"
     },
     "content_generation": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.806Z"
+      "updatedAt": "2026-07-05T02:46:23.807Z"
     },
     "engagement_intent": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.806Z"
+      "updatedAt": "2026-07-05T02:46:23.807Z"
     },
     "learning": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.806Z"
+      "updatedAt": "2026-07-05T02:46:23.807Z"
     }
   },
   "engagementEvents": [],

@@ -1,11 +1,13 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { researchBriefSchema } from "../lib/research-brief";
+import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import {
-  getLead,
   isStageEnabled,
   leadSummary,
   markStageSkipped,
+  resolveLeadReference,
   saveStageOutput,
 } from "../lib/store";
 import type {
@@ -18,52 +20,15 @@ const STAGE_TO_TOGGLE: Partial<Record<PipelineStage, ToggleableStage>> = {
   qualification: "qualification",
   hypothesis: "hypothesis",
   opportunity_mapping: "opportunity_mapping",
-  messaging_strategy: "messaging_strategy",
   sequence_planning: "sequence_planning",
   content_generation: "content_generation",
-  engagement_intent: "engagement_intent",
   learning: "learning",
 };
 
-// Lenient: a missing list never blocks the pipeline; it just defaults empty.
-const stringList = z.array(z.string()).default([]);
-
-const researchSchema = z.object({
-  company: z.object({
-    name: z.string(),
-    industry: z.string().optional(),
-    employeeCount: z.string().optional(),
-    funding: z.string().optional(),
-    arrEstimate: z.string().optional(),
-    engineeringTeamSize: z.string().optional(),
-    techStack: stringList,
-    hiringActivity: z.string().optional(),
-    recentNews: stringList,
-    growthSignals: stringList,
-    sources: stringList,
-  }),
-  person: z.object({
-    name: z.string(),
-    title: z.string().optional(),
-    team: z.string().optional(),
-    seniority: z.string().optional(),
-    linkedInUrl: z.string().optional(),
-    technicalBackground: z.string().optional(),
-    decisionMakingAuthority: z.string().optional(),
-    sources: stringList,
-  }),
-  initiatives: stringList,
-  productLaunches: stringList,
-  aiInitiatives: stringList,
-  hiringTrends: stringList,
-  architectureNotes: stringList,
-  competitors: stringList,
-  priorities: stringList,
-  // Lenient like the lists: a dropped summary shouldn't cost a failed
-  // tool call plus a full retry turn.
-  summary: z.string().default(""),
-  sources: stringList,
-});
+// The research stage is normally persisted by the researcher subagent via its
+// own save_research_brief tool; this schema stays registered so the foreman
+// can still re-save or repair a research payload if needed.
+const researchSchema = researchBriefSchema;
 
 const qualificationSchema = z.object({
   scores: z.object({
@@ -146,6 +111,8 @@ const sendRecordSchema = z.object({
 });
 
 const contentSchema = z.object({
+  // The messaging strategy decided as the first step of content generation.
+  messagingStrategy: messagingSchema.optional(),
   subjectLines: z.array(z.string()),
   emailBody: z.string(),
   cta: z.string(),
@@ -201,6 +168,12 @@ const intakeSchema = z.object({
   source: z.string(),
 });
 
+function emailBodyWithLandingPage(body: string, landingPageUrl?: string): string {
+  const trimmedUrl = landingPageUrl?.trim();
+  if (!trimmedUrl || body.includes(trimmedUrl)) return body;
+  return `${body.trim()}\n\nI put together a short page with more detail here: ${trimmedUrl}`;
+}
+
 export default defineTool({
   description:
     "Persist a pipeline stage output for a lead. Validates stage shape and rejects writes for disabled stages.",
@@ -212,7 +185,6 @@ export default defineTool({
       "qualification",
       "hypothesis",
       "opportunity_mapping",
-      "messaging_strategy",
       "sequence_planning",
       "content_generation",
       "engagement_intent",
@@ -222,7 +194,25 @@ export default defineTool({
     note: z.string().optional(),
     output: z.unknown(),
   }),
-  async execute({ leadId, stage, status, note, output }) {
+  async execute({ leadId, stage, status, note, output }, ctx) {
+    await assertRunIsCurrent(rootSessionIdOf(ctx.session));
+
+    // Fail fast with a short, actionable message instead of letting
+    // saveStageOutput/markStageSkipped throw — an uncaught error here gets
+    // logged (and fed back to the model) as a raw stack trace on every retry,
+    // which can burn through a subagent's token budget fast.
+    const resolution = await resolveLeadReference(leadId);
+    const resolvedLead = resolution.lead;
+    if (!resolvedLead) {
+      return {
+        ok: false as const,
+        error: resolution.ambiguousCandidates?.length
+          ? `Lead reference "${leadId}" matched multiple leads: ${resolution.ambiguousCandidates.join(", ")}. Use the exact lead id.`
+          : `Lead not found: ${leadId}`,
+      };
+    }
+    leadId = resolvedLead.id;
+
     // Models frequently pass the payload as stringified JSON; accept both.
     if (typeof output === "string") {
       try {
@@ -274,7 +264,6 @@ export default defineTool({
       qualification: qualificationSchema,
       hypothesis: hypothesisSchema,
       opportunity_mapping: opportunitySchema,
-      messaging_strategy: messagingSchema,
       sequence_planning: sequenceSchema,
       content_generation: contentSchema,
       engagement_intent: engagementIntentSchema,
@@ -289,14 +278,22 @@ export default defineTool({
       };
     }
 
-    // The landing page link is attached by create_landing_page before the
-    // full content payload is written; don't let a re-save drop it.
+    // Keep an existing landing-page link on content re-saves, and ensure the
+    // saved email body contains the link before the stage is marked done.
     if (stage === "content_generation") {
-      const existing = (await getLead(leadId))?.stages.content_generation
-        ?.output as Partial<ContentGenerationOutput> | undefined;
+      const existing = resolvedLead.stages.content_generation?.output as
+        | Partial<ContentGenerationOutput>
+        | undefined;
       const data = parsed.data as Partial<ContentGenerationOutput>;
+      data.messagingStrategy ??= existing?.messagingStrategy;
       data.landingPageSlug ??= existing?.landingPageSlug;
       data.landingPageUrl ??= existing?.landingPageUrl;
+      if (typeof data.emailBody === "string") {
+        data.emailBody = emailBodyWithLandingPage(
+          data.emailBody,
+          data.landingPageUrl,
+        );
+      }
     }
 
     const lead = await saveStageOutput(leadId, stage, parsed.data, {

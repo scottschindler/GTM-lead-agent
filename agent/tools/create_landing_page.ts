@@ -3,13 +3,13 @@ import { randomUUID } from "node:crypto";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import {
   getLead,
   readPipelineConfig,
   saveLandingPage,
-  saveStageOutput,
 } from "../lib/store";
-import type { ContentGenerationOutput, LandingPage } from "../lib/types";
+import type { LandingPage } from "../lib/types";
 
 function baseUrl(): string {
   if (process.env.LANDING_PAGE_BASE_URL) {
@@ -90,7 +90,9 @@ export default defineTool({
     ctaLabel: z.string().min(1).describe("Primary call-to-action label, e.g. 'Book 20 minutes with our team'"),
     ctaUrl: z.string().url().optional().describe("Where the CTA points; omit to use a mailto fallback"),
   }),
-  async execute(input) {
+  async execute(input, ctx) {
+    await assertRunIsCurrent(rootSessionIdOf(ctx.session));
+
     const config = await readPipelineConfig();
     if (!config.landingPages) {
       return {
@@ -127,30 +129,11 @@ export default defineTool({
     await saveLandingPage(page);
     const url = `${baseUrl()}/for/${slug}`;
 
-    // Record the link on the content_generation stage so the dashboard and
-    // later re-saves keep it, even before the full stage output is written.
-    const existing = (lead.stages.content_generation?.output ??
-      {}) as Partial<ContentGenerationOutput>;
-    await saveStageOutput(
-      lead.id,
-      "content_generation",
-      {
-        subjectLines: existing.subjectLines ?? [],
-        emailBody: existing.emailBody ?? "",
-        cta: existing.cta ?? "",
-        objectionResponses: existing.objectionResponses ?? [],
-        ...existing,
-        landingPageSlug: slug,
-        landingPageUrl: url,
-      },
-      { status: lead.stages.content_generation?.status === "done" ? "done" : "running" },
-    );
-
     return {
       ok: true as const,
       slug,
       url,
-      message: `Personalized landing page created. Include this exact URL in the outreach email: ${url}`,
+      message: `Personalized landing page created. Include this exact URL in the outreach email, then save content_generation once with the email body, landingPageSlug, landingPageUrl, and send draft: ${url}`,
     };
   },
 });

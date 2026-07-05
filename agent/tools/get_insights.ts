@@ -5,7 +5,7 @@ import { readInsights } from "../lib/store";
 
 export default defineTool({
   description:
-    "Read accumulated learning insights from previous pipeline runs. Call before messaging strategy and content generation so past learnings shape the outreach.",
+    "Read accumulated learning insights from previous pipeline runs. Call before content generation so past learnings shape the messaging strategy and outreach.",
   inputSchema: z.object({}),
   async execute() {
     const insights = await readInsights();

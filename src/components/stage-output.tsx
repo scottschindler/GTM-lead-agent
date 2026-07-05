@@ -13,10 +13,11 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 function Chips({ items }: { items: string[] }) {
-  if (items.length === 0) return null;
+  const uniqueItems = Array.from(new Set(items.filter(Boolean)));
+  if (uniqueItems.length === 0) return null;
   return (
     <div className="flex flex-wrap gap-1.5">
-      {items.map((item) => (
+      {uniqueItems.map((item) => (
         <span
           key={item}
           className="rounded-full border border-[var(--geist-border)] px-2.5 py-0.5 text-xs"
@@ -32,8 +33,8 @@ function Bullets({ items }: { items: string[] }) {
   if (items.length === 0) return null;
   return (
     <ul className="list-disc space-y-1 pl-5 text-sm">
-      {items.map((item) => (
-        <li key={item}>{item}</li>
+      {items.map((item, index) => (
+        <li key={`${item}-${index}`}>{item}</li>
       ))}
     </ul>
   );
@@ -62,6 +63,14 @@ function Fact({ label, value }: { label: string; value?: string }) {
       <div>{value}</div>
     </div>
   );
+}
+
+function hasText(value: string | undefined): boolean {
+  return typeof value === "string" && value.trim().length > 0;
+}
+
+function hasItems(items: string[] | undefined): boolean {
+  return Array.isArray(items) && items.some((item) => hasText(item));
 }
 
 function Badge({ children }: { children: React.ReactNode }) {
@@ -175,13 +184,36 @@ type ResearchData = {
 function ResearchView({ data }: { data: ResearchData }) {
   const company = data.company ?? {};
   const person = data.person ?? {};
+  const hasSubstantiveResearch =
+    hasText(data.summary) ||
+    hasText(company.industry) ||
+    hasText(company.employeeCount) ||
+    hasText(company.funding) ||
+    hasText(person.title) ||
+    hasText(person.seniority) ||
+    hasText(person.technicalBackground) ||
+    hasText(person.decisionMakingAuthority) ||
+    hasItems(company.techStack) ||
+    hasItems(company.recentNews) ||
+    hasItems(company.growthSignals) ||
+    hasItems(data.initiatives) ||
+    hasItems(data.aiInitiatives) ||
+    hasItems(data.priorities);
+
   return (
     <div className="space-y-4">
       {data.summary ? <p className="text-sm">{data.summary}</p> : null}
+      {!hasSubstantiveResearch ? (
+        <p className="rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-subtle)] p-3 text-sm text-[var(--geist-muted)]">
+          Research saved sources, but no usable company or contact details.
+          Re-run this stage to capture a complete brief.
+        </p>
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-3 rounded-[8px] border border-[var(--geist-border)] p-3">
           <Label>Company</Label>
+          <Fact label="Name" value={company.name} />
           <Fact label="Industry" value={company.industry} />
           <Fact label="Employees" value={company.employeeCount} />
           <Fact label="Funding" value={company.funding} />
@@ -194,6 +226,7 @@ function ResearchView({ data }: { data: ResearchData }) {
 
         <div className="space-y-3 rounded-[8px] border border-[var(--geist-border)] p-3">
           <Label>Contact</Label>
+          <Fact label="Name" value={person.name} />
           <Fact label="Title" value={person.title} />
           <Fact label="Seniority" value={person.seniority} />
           <Fact label="Technical background" value={person.technicalBackground} />
@@ -350,20 +383,20 @@ function OpportunityView({
   );
 }
 
-function MessagingView({
-  data,
-}: {
-  data: {
-    messagingAngle?: string;
-    technicalDepth?: string;
-    tone?: string;
-    story?: string;
-    hooks?: string[];
-    cta?: string;
-    customerExamples?: string[];
-    likelyObjections?: string[];
-  };
-}) {
+type MessagingStrategyData = {
+  messagingAngle?: string;
+  technicalDepth?: string;
+  tone?: string;
+  story?: string;
+  hooks?: string[];
+  cta?: string;
+  customerExamples?: string[];
+  likelyObjections?: string[];
+};
+
+// Messaging strategy lives inside the content_generation output; exported so
+// the reviews inbox can render it as its own panel.
+export function MessagingStrategyView({ data }: { data: MessagingStrategyData }) {
   return (
     <div className="space-y-4">
       {data.messagingAngle ? <p className="text-sm">{data.messagingAngle}</p> : null}
@@ -448,7 +481,7 @@ function SequenceView({
           <ol className="relative space-y-0">
             {(data.steps ?? []).map((step, index, steps) => (
               <li
-                key={`${step.channel}-${step.delayDays}`}
+                key={`${step.channel}-${step.delayDays}-${index}`}
                 className="relative flex gap-3 pb-4 last:pb-0"
               >
                 <div className="flex flex-col items-center">
@@ -513,6 +546,7 @@ function ContentView({
   data,
 }: {
   data: {
+    messagingStrategy?: MessagingStrategyData;
     subjectLines?: string[];
     emailBody?: string;
     cta?: string;
@@ -534,6 +568,11 @@ function ContentView({
   const window = send?.sendWindow;
   return (
     <div className="space-y-4">
+      {data.messagingStrategy ? (
+        <Section label="Messaging strategy">
+          <MessagingStrategyView data={data.messagingStrategy} />
+        </Section>
+      ) : null}
       {(data.subjectLines ?? []).length > 0 ? (
         <Section label="Subject line options">
           <Bullets items={data.subjectLines ?? []} />
@@ -753,8 +792,6 @@ export function StageOutput({
       return <HypothesisView data={data} />;
     case "opportunity_mapping":
       return <OpportunityView data={data} />;
-    case "messaging_strategy":
-      return <MessagingView data={data} />;
     case "sequence_planning":
       return <SequenceView data={data} />;
     case "content_generation":

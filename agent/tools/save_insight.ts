@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import { saveInsights } from "../lib/store";
 
 const insightSchema = z.object({
@@ -24,7 +25,9 @@ export default defineTool({
     leadId: z.string().min(1),
     insights: z.array(insightSchema).min(1),
   }),
-  async execute({ leadId, insights }) {
+  async execute({ leadId, insights }, ctx) {
+    await assertRunIsCurrent(rootSessionIdOf(ctx.session));
+
     const stored = await saveInsights(leadId, insights);
     return { ok: true as const, saved: stored.length };
   },

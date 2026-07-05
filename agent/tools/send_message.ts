@@ -1,6 +1,7 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import {
   computeSendWindow,
   getLead,
@@ -8,6 +9,16 @@ import {
   saveStageOutput,
 } from "../lib/store";
 import type { ContentGenerationOutput } from "../lib/types";
+
+function emailBodyWithLandingPage(body: string, landingPageUrl?: string): string {
+  const trimmedUrl = landingPageUrl?.trim();
+  if (!trimmedUrl || body.includes(trimmedUrl)) return body;
+  return `${body.trim()}\n\nI put together a short page with more detail here: ${trimmedUrl}`;
+}
+
+function presentText(value: string | undefined, fallback: string): string {
+  return value?.trim() ? value : fallback;
+}
 
 export default defineTool({
   description:
@@ -19,7 +30,9 @@ export default defineTool({
     cta: z.string().min(1),
     timezone: z.string().optional(),
   }),
-  async execute({ leadId, subject, body, cta, timezone }) {
+  async execute({ leadId, subject, body, cta, timezone }, ctx) {
+    await assertRunIsCurrent(rootSessionIdOf(ctx.session));
+
     const lead = await getLead(leadId);
     if (!lead) {
       return { ok: false as const, error: `Lead not found: ${leadId}` };
@@ -28,6 +41,10 @@ export default defineTool({
     const sendWindow = computeSendWindow(
       timezone ?? lead.timezone ?? "America/Los_Angeles",
     );
+
+    const existing = (lead.stages.content_generation?.output ??
+      {}) as Partial<ContentGenerationOutput>;
+    body = emailBodyWithLandingPage(body, existing.landingPageUrl);
 
     // Drafts always start as "drafted". A BDR approves or denies them in the
     // Inbox — approval is what gates the send status.
@@ -39,12 +56,13 @@ export default defineTool({
       sendWindow,
     };
 
-    const existing = (lead.stages.content_generation?.output ??
-      {}) as Partial<ContentGenerationOutput>;
     const output: ContentGenerationOutput = {
-      subjectLines: existing.subjectLines ?? [subject],
-      emailBody: existing.emailBody ?? body,
-      cta: existing.cta ?? cta,
+      subjectLines: existing.subjectLines?.length ? existing.subjectLines : [subject],
+      emailBody: emailBodyWithLandingPage(
+        presentText(existing.emailBody, body),
+        existing.landingPageUrl,
+      ),
+      cta: presentText(existing.cta, cta),
       objectionResponses: existing.objectionResponses ?? [],
       landingPageSlug: existing.landingPageSlug,
       landingPageUrl: existing.landingPageUrl,
