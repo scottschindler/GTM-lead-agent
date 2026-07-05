@@ -30,6 +30,14 @@ type RunState = {
   };
 };
 
+export type PipelineRunSnapshot = {
+  generation: number;
+  activeRun?: {
+    leadId: string;
+    startedAt: string;
+  };
+};
+
 const DEFAULT_STATE: RunState = { generation: 0, sessions: {} };
 const ACTIVE_RUN_TTL_MS = 45 * 60 * 1000;
 let runStateQueue: Promise<void> = Promise.resolve();
@@ -63,6 +71,25 @@ async function readRunState(): Promise<RunState> {
 
 async function writeRunState(state: RunState): Promise<void> {
   await storage().setJson(RUN_STATE_KEY, state);
+}
+
+export async function readPipelineRunSnapshot(): Promise<PipelineRunSnapshot> {
+  return withRunStateLock(async () => {
+    const state = await readRunState();
+    if (isActiveRunStale(state)) {
+      delete state.activeRun;
+      await writeRunState(state);
+    }
+    return {
+      generation: state.generation,
+      activeRun: state.activeRun
+        ? {
+            leadId: state.activeRun.leadId,
+            startedAt: state.activeRun.startedAt,
+          }
+        : undefined,
+    };
+  });
 }
 
 /**

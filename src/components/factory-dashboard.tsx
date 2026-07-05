@@ -29,6 +29,14 @@ type InputRequest = {
   options?: Array<{ id: string; label?: string }>;
 };
 
+type PipelineRunState = {
+  generation: number;
+  activeRun?: {
+    leadId: string;
+    startedAt: string;
+  };
+};
+
 function statusColor(status: StageRecord["status"]): string {
   switch (status) {
     case "done":
@@ -257,6 +265,7 @@ export function FactoryDashboard() {
   const [activeLeadId, setActiveLeadId] = useState<string | null>(null);
   const [config, setConfig] = useState<PipelineConfig | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
+  const [runState, setRunState] = useState<PipelineRunState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Surface turn failures even when nothing awaits them (e.g. the stream
@@ -273,8 +282,12 @@ export function FactoryDashboard() {
     if (!response.ok) {
       throw new Error("Failed to load leads");
     }
-    const data = (await response.json()) as { leads: Lead[] };
+    const data = (await response.json()) as {
+      leads: Lead[];
+      runState?: PipelineRunState;
+    };
     setLeads(data.leads);
+    setRunState(data.runState ?? null);
     return data.leads;
   }, []);
 
@@ -323,14 +336,18 @@ export function FactoryDashboard() {
 
   const lead = useMemo(() => {
     if (leads.length === 0) return null;
-    if (activeLeadId) {
-      return leads.find((item) => item.id === activeLeadId) ?? leads[0];
+    const preferredLeadId = runState?.activeRun?.leadId ?? activeLeadId;
+    if (preferredLeadId) {
+      return leads.find((item) => item.id === preferredLeadId) ?? leads[0];
     }
     return leads[0];
-  }, [activeLeadId, leads]);
+  }, [activeLeadId, leads, runState?.activeRun?.leadId]);
 
   const agentBusy = agent.status === "submitted" || agent.status === "streaming";
   const stopAgent = agent.stop;
+  const serverActiveLeadId = runState?.activeRun?.leadId;
+  const serverRunActiveForSelectedLead =
+    Boolean(serverActiveLeadId) && serverActiveLeadId === lead?.id;
   const selectedLeadSettled =
     lead && config ? leadPipelineSettled(lead, config) : false;
 
@@ -342,7 +359,9 @@ export function FactoryDashboard() {
 
   const isBusy =
     runSubmitting ||
-    (agentBusy && !serverTurnTerminal && !selectedLeadSettled);
+    ((agentBusy || serverRunActiveForSelectedLead) &&
+      !serverTurnTerminal &&
+      !selectedLeadSettled);
 
   // If the server or lead state says the turn ended but the client stream did
   // not close, abort the stale stream so a new run can start.
@@ -353,17 +372,21 @@ export function FactoryDashboard() {
   }, [serverTurnTerminal, selectedLeadSettled, agentBusy, stopAgent]);
 
   useEffect(() => {
-    if (!agentBusy) return;
+    if (!agentBusy && !runState?.activeRun) return;
     const id = window.setInterval(() => {
       void refreshLeads();
       void refreshActivity();
     }, 1500);
     return () => window.clearInterval(id);
-  }, [agentBusy, refreshActivity, refreshLeads]);
+  }, [agentBusy, refreshActivity, refreshLeads, runState?.activeRun]);
 
-  const canRunActiveLead = lead?.outcome === "open" && !selectedLeadSettled;
+  const canRunActiveLead =
+    lead?.outcome === "open" && !selectedLeadSettled && !runState?.activeRun;
   const hasResettableState =
-    agentBusy || activity.length > 0 || leads.some(leadHasResettableState);
+    agentBusy ||
+    Boolean(runState?.activeRun) ||
+    activity.length > 0 ||
+    leads.some(leadHasResettableState);
 
   const activeLeadIndex = useMemo(
     () => (lead ? leads.findIndex((item) => item.id === lead.id) : -1),
@@ -454,6 +477,7 @@ export function FactoryDashboard() {
       if (!response.ok) throw new Error("Reset failed");
       const data = (await response.json()) as { leads: Lead[] };
       setLeads(data.leads);
+      setRunState(null);
       setActiveLeadId(data.leads[0]?.id ?? null);
       setShowPrevLead(false);
       setActivity([]);
