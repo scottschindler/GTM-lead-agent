@@ -182,17 +182,6 @@ const evalModel = mockModel({
         };
       }
 
-      if (toolResultCount(results, "qualify_lead") === 0) {
-        return {
-          toolCalls: [
-            {
-              name: "qualify_lead",
-              input: { leadId: "lead_eval_full" },
-            },
-          ],
-        };
-      }
-
       if (toolResultCount(results, "pipeline_writer") === 0) {
         return {
           toolCalls: [
@@ -215,6 +204,21 @@ const evalModel = mockModel({
               name: "save_stage_output",
               input: {
                 leadId: "lead_eval_full",
+                stage: "qualification",
+                output: PIPELINE_WRITER_MOCK_OUTPUT.qualification,
+              },
+            },
+          ],
+        };
+      }
+
+      if (stageSaves === 1) {
+        return {
+          toolCalls: [
+            {
+              name: "save_stage_output",
+              input: {
+                leadId: "lead_eval_full",
                 stage: "hypothesis",
                 output: PIPELINE_WRITER_MOCK_OUTPUT.hypothesis,
               },
@@ -223,7 +227,7 @@ const evalModel = mockModel({
         };
       }
 
-      if (stageSaves === 1) {
+      if (stageSaves === 2) {
         return {
           toolCalls: [
             {
@@ -238,7 +242,7 @@ const evalModel = mockModel({
         };
       }
 
-      if (stageSaves === 2) {
+      if (stageSaves === 3) {
         return {
           toolCalls: [
             {
@@ -269,7 +273,7 @@ const evalModel = mockModel({
         };
       }
 
-      if (stageSaves === 3) {
+      if (stageSaves === 4) {
         const landingPage = latestToolOutput<{
           slug?: string;
           url?: string;
@@ -326,80 +330,6 @@ const evalModel = mockModel({
       }
 
       return "Full pipeline eval complete.";
-    }
-
-    if (message.includes("DISQUALIFY_EVAL")) {
-      if (toolResultCount(results, "create_lead") === 0) {
-        return {
-          toolCalls: [
-            {
-              name: "create_lead",
-              input: {
-                id: "lead_eval_disqualified",
-                name: "Eval Competitor",
-                email: "eval-competitor@cloudflare.com",
-                company: "Cloudflare",
-                companyDomain: "cloudflare.com",
-                source: "pricing-page",
-              },
-            },
-          ],
-        };
-      }
-
-      if (toolResultCount(results, "get_lead") === 0) {
-        return {
-          toolCalls: [
-            {
-              name: "get_lead",
-              input: { leadId: "lead_eval_disqualified" },
-            },
-          ],
-        };
-      }
-
-      if (toolResultCount(results, "researcher") === 0) {
-        return {
-          toolCalls: [
-            {
-              name: "researcher",
-              input: {
-                message:
-                  "canonical_lead_id: lead_eval_disqualified. Research Eval Competitor at Cloudflare quickly and save the compact research brief. The email is contact metadata, not a lead id.",
-              },
-            },
-          ],
-        };
-      }
-
-      if (toolResultCount(results, "qualify_lead") === 0) {
-        return {
-          toolCalls: [
-            {
-              name: "qualify_lead",
-              input: { leadId: "lead_eval_disqualified" },
-            },
-          ],
-        };
-      }
-
-      if (toolResultCount(results, "set_lead_outcome") === 0) {
-        return {
-          toolCalls: [
-            {
-              name: "set_lead_outcome",
-              input: {
-                leadId: "lead_eval_disqualified",
-                outcome: "disqualified",
-                recommendedNextAction:
-                  "Do not pursue as a sales prospect because the account is a direct platform competitor.",
-              },
-            },
-          ],
-        };
-      }
-
-      return "Disqualified pipeline eval complete.";
     }
 
     return "Eval fixture received an unknown prompt.";
