@@ -13,9 +13,7 @@ type AgentStage =
   | "Enrichment"
   | "Discovery"
   | "Strategy"
-  | "Outreach"
-  | "Signals"
-  | "Learning";
+  | "Outreach";
 
 type Agent = {
   id: number;
@@ -54,14 +52,6 @@ const stages: { label: AgentStage; description: string }[] = [
   {
     label: "Outreach",
     description: "Plan, generate, and optimize outbound motion.",
-  },
-  {
-    label: "Signals",
-    description: "Observe engagement and decide when humans take over.",
-  },
-  {
-    label: "Learning",
-    description: "Improve every upstream worker from outcomes.",
   },
 ];
 
@@ -192,64 +182,10 @@ const agents: Agent[] = [
     id: 10,
     name: "Send Optimization Agent",
     stage: "Outreach",
-    summary: "Maximizes engagement and deliverability.",
+    summary: "Chooses a review-ready send window.",
     responsibility: "Optimize when messages are sent.",
-    output: "Send schedule tuned to time zone and engagement patterns.",
+    output: "Send schedule tuned to the recipient's time zone.",
     details: ["Send time", "Time zone", "Sending schedule"],
-  },
-  {
-    id: 11,
-    name: "Engagement Agent",
-    stage: "Signals",
-    summary: "Observes every buying signal.",
-    responsibility: "Monitor activity across channels and product.",
-    output: "Live engagement timeline.",
-    details: [
-      "Email engagement and replies",
-      "Pricing and documentation views",
-      "Product signups and content downloads",
-      "Calendar bookings and website activity",
-    ],
-  },
-  {
-    id: 12,
-    name: "Intent Scoring Agent",
-    stage: "Signals",
-    summary: "Continuously updates buying likelihood.",
-    responsibility: "Adjust score as new signals arrive.",
-    output: "Intent score, confidence, and recommended next action.",
-    details: [
-      "Email engagement and replies",
-      "Product usage and documentation activity",
-      "Pricing interest",
-    ],
-  },
-  {
-    id: 13,
-    name: "Human Handoff Agent",
-    stage: "Signals",
-    summary: "Knows when AI should stop.",
-    responsibility: "Escalate complex deals and prepare the rep.",
-    output: "Handoff brief with summary, history, and talking points.",
-    details: [
-      "Enterprise, pricing, security, procurement, legal",
-      "Architecture discussions and custom integrations",
-      "Executive interest",
-    ],
-  },
-  {
-    id: 14,
-    name: "Learning Agent",
-    stage: "Learning",
-    summary: "Improves the factory over time.",
-    responsibility: "Learn from wins, losses, and engagement patterns.",
-    output: "Feedback loops into every upstream worker.",
-    details: [
-      "Which emails, sequences, and stories convert",
-      "Best messaging by persona and timing",
-      "Common objections and hypothesis accuracy",
-      "Win/loss patterns",
-    ],
   },
 ];
 

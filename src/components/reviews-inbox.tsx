@@ -653,15 +653,11 @@ function EngagementSection({ engagement }: { engagement: DemoEngagement }) {
     <DetailSection
       title={
         <HoverHint
-          label="Engagement agent — live buying signals"
+          label="Engagement signals — demo snapshot"
           hintId="engagement-agent-hint"
         >
-          The engagement agent takes over once outreach is sent. It watches
-          every buying signal — email opens, replies, pricing-page visits,
-          docs views, product signups, content downloads, meeting bookings,
-          and website activity — weighs each one, and continuously re-scores
-          how likely this account is to buy. The intent score, confidence,
-          and recommended next action update the moment a new signal lands.
+          This panel shows seeded demo signals only. The live app does not run
+          an engagement-intent agent or update intent scores after outreach.
         </HoverHint>
       }
     >
@@ -1467,9 +1463,9 @@ function CompleteCard({
 }) {
   const badge = RESULT_BADGE[item.result];
 
-  // Every pipeline stage ran; the learning agent marks the ones whose
-  // judgment didn't survive contact with the buyer. Each chip carries the
-  // stage's saved output so clicking it shows exactly what was produced.
+  // Demo summaries mark the stages whose judgment did not survive contact with
+  // the buyer. Each chip carries saved output so clicking it shows exactly
+  // what was produced.
   const pipelineSteps: ReviewPipelineStep[] = [
     ...STAGE_ORDER.map((stage) => ({
       label: STRIP_STAGE_LABELS[stage],
@@ -1605,13 +1601,8 @@ function CompleteCard({
                 label="Learning agent — full assessment"
                 hintId={`learning-agent-hint-${item.id}`}
               >
-                The learning agent runs after a lead&apos;s outcome is known.
-                It reviews the entire run — every stage&apos;s output against
-                what the buyer actually said and did — grades the original
-                hypothesis,
-                pinpoints which pipeline stages succeeded or missed, and turns
-                the result into insights that feed back into research,
-                qualification, messaging, and sequencing for future leads.
+                This is seeded demo assessment data only. The live app does not
+                run a learning agent or write new learning-stage output.
               </HoverHint>
             }
           >
@@ -1775,7 +1766,7 @@ export function ReviewsInbox() {
   // reply.
   const inProcessLeads = DEMO_IN_PROCESS_LEADS;
   // Demo data for now: leads with a known end result (sale or decline) and
-  // the learning agent's full assessment of the run.
+  // seeded assessment summaries.
   const completeLeads = DEMO_COMPLETE_LEADS;
 
   const wonCount = completeLeads.filter(
@@ -1919,10 +1910,9 @@ export function ReviewsInbox() {
             <div>
               <h2 className="text-sm font-medium">In process</h2>
               <p className="mt-1 text-sm text-[var(--geist-muted)]">
-                The pipeline ran end to end and the send was approved. While
-                the sequence waits for a reply, the engagement agent watches
-                every buying signal — opens, replies, pricing visits, docs
-                views, product signups — and keeps the intent score live.
+                The pipeline ran end to end and the send was approved. This
+                panel uses seeded demo signal data only; the live app does not
+                run an engagement-intent agent.
               </p>
             </div>
             {inProcessLeads.length === 0 ? (
@@ -1951,17 +1941,16 @@ export function ReviewsInbox() {
             <div>
               <h2 className="text-sm font-medium">Complete</h2>
               <p className="mt-1 text-sm text-[var(--geist-muted)]">
-                Leads with a known end result — a sale or a decline. The
-                learning agent reviews each full run: what happened, how we
-                found out, and where the pipeline succeeded or missed.
+                Leads with a known end result — a sale or a decline. This panel
+                uses seeded demo summaries only; the live app does not run a
+                learning agent.
               </p>
             </div>
             {completeLeads.length === 0 ? (
               <div className="rounded-[8px] border border-[var(--geist-border)] px-4 py-8 text-center">
                 <p className="text-sm font-medium">No completed leads yet</p>
                 <p className="mt-1 text-sm text-[var(--geist-muted)]">
-                  Leads land here once their outcome is known and the learning
-                  agent has assessed the run.
+                  Leads land here once their outcome is known.
                 </p>
               </div>
             ) : (

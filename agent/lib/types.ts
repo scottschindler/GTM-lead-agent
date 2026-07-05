@@ -19,7 +19,6 @@ export const TOGGLEABLE_STAGES = [
   "opportunity_mapping",
   "content_generation",
   "sequence_planning",
-  "learning",
 ] as const;
 
 export type ToggleableStage = (typeof TOGGLEABLE_STAGES)[number];
@@ -309,7 +308,6 @@ export const DEFAULT_PIPELINE_CONFIG: PipelineConfig = {
     opportunity_mapping: true,
     content_generation: true,
     sequence_planning: true,
-    learning: true,
   },
   landingPages: true,
 };

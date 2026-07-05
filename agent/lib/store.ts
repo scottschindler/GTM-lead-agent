@@ -14,11 +14,8 @@ import {
   emptyStages,
   type ActivityEvent,
   type ContentGenerationOutput,
-  type EngagementEvent,
-  type EngagementIntentOutput,
   type LandingPage,
   type Lead,
-  type LearningInsight,
   type PipelineConfig,
   type PipelineStage,
   type StageRecord,
@@ -31,7 +28,6 @@ import {
 // establish the workspace; these functions just read and write within it.
 
 const CONFIG_KEY = "config";
-const INSIGHTS_KEY = "insights";
 const ACTIVITY_KEY = "activity";
 
 function leadKey(id: string): string {
@@ -459,32 +455,6 @@ export async function readActivity(options?: {
   return events;
 }
 
-export type StoredInsight = LearningInsight & {
-  id: string;
-  leadId: string;
-  createdAt: string;
-};
-
-export async function readInsights(): Promise<StoredInsight[]> {
-  return (await storage().getJson<StoredInsight[]>(INSIGHTS_KEY)) ?? [];
-}
-
-export async function saveInsights(
-  leadId: string,
-  insights: LearningInsight[],
-): Promise<StoredInsight[]> {
-  const existing = await readInsights();
-  const now = new Date().toISOString();
-  const stored = insights.map((insight) => ({
-    ...insight,
-    id: randomUUID().slice(0, 8),
-    leadId,
-    createdAt: now,
-  }));
-  await storage().setJson(INSIGHTS_KEY, [...existing, ...stored]);
-  return stored;
-}
-
 export async function saveLandingPage(page: LandingPage): Promise<LandingPage> {
   await storage().setJson(landingPageKey(page.slug), page);
   return page;
@@ -498,133 +468,6 @@ export async function getLandingPage(
     return null;
   }
   return storage().getJson<LandingPage>(landingPageKey(slug));
-}
-
-const ENGAGEMENT_SIGNALS: Array<{
-  type: string;
-  weight: number;
-  chance: number;
-}> = [
-  { type: "email_opened", weight: 1, chance: 0.9 },
-  { type: "email_link_clicked", weight: 2, chance: 0.6 },
-  { type: "docs_page_visited", weight: 2, chance: 0.5 },
-  { type: "pricing_page_visited", weight: 3, chance: 0.4 },
-  { type: "customer_story_read", weight: 2, chance: 0.35 },
-  { type: "reply_received", weight: 4, chance: 0.25 },
-  { type: "product_signup", weight: 5, chance: 0.15 },
-  { type: "calendar_link_viewed", weight: 3, chance: 0.2 },
-];
-
-/**
- * Deterministic pseudo-random engagement simulation, seeded by lead id so
- * repeated runs on the same lead produce the same "made up" timeline.
- */
-export function simulateEngagement(leadId: string): {
-  events: EngagementEvent[];
-  intentScore: number;
-  confidence: number;
-  signalBreakdown: Array<{ signal: string; weight: number }>;
-} {
-  let seed = [...leadId].reduce((acc, ch) => acc * 31 + ch.charCodeAt(0), 7) >>> 0;
-  const random = () => {
-    seed = (seed * 1664525 + 1013904223) >>> 0;
-    return seed / 0xffffffff;
-  };
-
-  const now = Date.now();
-  const events: EngagementEvent[] = [];
-  const signalBreakdown: Array<{ signal: string; weight: number }> = [];
-  let score = 0;
-  let maxScore = 0;
-
-  for (const signal of ENGAGEMENT_SIGNALS) {
-    maxScore += signal.weight;
-    if (random() < signal.chance) {
-      const hoursAgo = Math.floor(random() * 72) + 1;
-      events.push({
-        id: randomUUID().slice(0, 8),
-        type: signal.type,
-        occurredAt: new Date(now - hoursAgo * 3_600_000).toISOString(),
-        metadata: { simulated: true },
-      });
-      signalBreakdown.push({ signal: signal.type, weight: signal.weight });
-      score += signal.weight;
-    }
-  }
-
-  events.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
-  const intentScore = Math.round((score / maxScore) * 100) / 10;
-  const confidence = Math.round((0.4 + events.length * 0.06) * 100) / 100;
-
-  return {
-    events,
-    intentScore,
-    confidence: Math.min(confidence, 0.95),
-    signalBreakdown,
-  };
-}
-
-export async function recordEngagement(
-  leadId: string,
-  events: EngagementEvent[],
-  intentScore: number,
-): Promise<Lead> {
-  const lead = await getLead(leadId);
-  if (!lead) {
-    throw new Error(`Lead not found: ${leadId}`);
-  }
-  lead.engagementEvents = [...lead.engagementEvents, ...events];
-  lead.intentScore = intentScore;
-  return saveLead(lead);
-}
-
-/**
- * Engagement & Intent is not part of the automatic pipeline — it only makes
- * sense once a lead has already been through the pipeline and a BDR has
- * approved and released a send. This is triggered manually from the Reviews
- * screen (or on request via the `simulate_engagement` tool).
- */
-export async function runEngagementSimulation(leadId: string): Promise<Lead> {
-  const lead = await getLead(leadId);
-  if (!lead) {
-    throw new Error(`Lead not found: ${leadId}`);
-  }
-
-  const content = lead.stages.content_generation?.output as
-    | ContentGenerationOutput
-    | undefined;
-  if (content?.send?.status !== "approved") {
-    throw new Error(
-      "Engagement simulation is only available after a lead's outreach has been approved and sent.",
-    );
-  }
-
-  const simulation = simulateEngagement(leadId);
-  await recordEngagement(leadId, simulation.events, simulation.intentScore);
-
-  const recommendedNextAction =
-    simulation.intentScore >= 7
-      ? "High intent detected — escalate to a human rep for follow-up."
-      : "Continue monitoring; no immediate action required.";
-
-  const output: EngagementIntentOutput = {
-    simulated: true,
-    events: simulation.events,
-    intentScore: simulation.intentScore,
-    confidence: simulation.confidence,
-    signalBreakdown: simulation.signalBreakdown,
-    recommendedNextAction,
-  };
-
-  const saved = await saveStageOutput(leadId, "engagement_intent", output);
-
-  await appendActivity({
-    type: "engagement.simulated",
-    summary: `Engagement simulated for ${lead.name} — intent score ${simulation.intentScore}/10`,
-    detail: { leadId, intentScore: simulation.intentScore },
-  });
-
-  return saved;
 }
 
 export type ResetFactoryMode = "clean" | "demo";

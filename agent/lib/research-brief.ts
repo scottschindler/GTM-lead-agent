@@ -11,6 +11,44 @@ function hasListItems(value: string[] | undefined): boolean {
   return Array.isArray(value) && value.some((item) => hasText(item));
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function textOrFallback(value: unknown, fallback?: string): string {
+  return typeof value === "string" && value.trim() ? value : fallback ?? "";
+}
+
+export type ResearchBriefFallback = {
+  companyName?: string;
+  personName?: string;
+};
+
+export function normalizeResearchBriefInput(
+  value: unknown,
+  fallback: ResearchBriefFallback = {},
+): unknown {
+  const brief = asRecord(value);
+  if (!brief) return value;
+
+  const company = asRecord(brief.company) ?? {};
+  const person = asRecord(brief.person) ?? {};
+
+  return {
+    ...brief,
+    company: {
+      ...company,
+      name: textOrFallback(company.name, fallback.companyName),
+    },
+    person: {
+      ...person,
+      name: textOrFallback(person.name, fallback.personName),
+    },
+  };
+}
+
 /**
  * Shared shape for the research stage output. Used by the foreman's
  * `save_stage_output` (research stage) and by the researcher subagent's

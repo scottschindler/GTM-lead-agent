@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { inSessionWorkspace } from "../lib/workspace";
 
-import { researchBriefSchema } from "../lib/research-brief";
+import {
+  normalizeResearchBriefInput,
+  researchBriefSchema,
+} from "../lib/research-brief";
 import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import {
   isStageEnabled,
@@ -24,7 +27,6 @@ const STAGE_TO_TOGGLE: Partial<Record<PipelineStage, ToggleableStage>> = {
   opportunity_mapping: "opportunity_mapping",
   sequence_planning: "sequence_planning",
   content_generation: "content_generation",
-  learning: "learning",
 };
 
 // The research stage is normally persisted by the researcher subagent via its
@@ -126,49 +128,22 @@ const contentSchema = z.object({
   send: sendRecordSchema.optional(),
 });
 
-const engagementIntentSchema = z.object({
-  simulated: z.literal(true),
-  events: z.array(
-    z.object({
-      id: z.string(),
-      type: z.string(),
-      occurredAt: z.string(),
-      metadata: z.record(z.string(), z.unknown()).optional(),
-    }),
-  ),
-  intentScore: z.number().min(0).max(10),
-  confidence: z.number().min(0).max(1),
-  signalBreakdown: z.array(
-    z.object({ signal: z.string(), weight: z.number() }),
-  ),
-  recommendedNextAction: z.string(),
-});
-
-const learningSchema = z.object({
-  insights: z.array(
-    z.object({
-      category: z.enum([
-        "messaging",
-        "qualification",
-        "hypothesis_accuracy",
-        "sequence",
-        "objections",
-        "general",
-      ]),
-      insight: z.string(),
-      evidence: z.string(),
-      applyTo: z.string(),
-    }),
-  ),
-  hypothesisAccuracy: z.string(),
-  whatWorked: z.array(z.string()),
-  whatToChange: z.array(z.string()),
-});
-
 const intakeSchema = z.object({
   leadId: z.string(),
   source: z.string(),
 });
+
+const writableStageSchema = z.enum([
+  "intake",
+  "research",
+  "qualification",
+  "hypothesis",
+  "opportunity_mapping",
+  "sequence_planning",
+  "content_generation",
+]);
+
+type WritableStage = z.infer<typeof writableStageSchema>;
 
 function emailBodyWithLandingPage(body: string, landingPageUrl?: string): string {
   const trimmedUrl = landingPageUrl?.trim();
@@ -181,17 +156,7 @@ export default defineTool({
     "Persist a pipeline stage output for a lead. Validates stage shape and rejects writes for disabled stages.",
   inputSchema: z.object({
     leadId: z.string().min(1),
-    stage: z.enum([
-      "intake",
-      "research",
-      "qualification",
-      "hypothesis",
-      "opportunity_mapping",
-      "sequence_planning",
-      "content_generation",
-      "engagement_intent",
-      "learning",
-    ]),
+    stage: writableStageSchema,
     status: z.enum(["done", "skipped", "failed"]).optional(),
     note: z.string().optional(),
     output: z.unknown(),
@@ -261,7 +226,7 @@ export default defineTool({
         };
       }
 
-      const schemas: Record<PipelineStage, z.ZodTypeAny> = {
+      const schemas: Record<WritableStage, z.ZodTypeAny> = {
         intake: intakeSchema,
         research: researchSchema,
         qualification: qualificationSchema,
@@ -269,11 +234,16 @@ export default defineTool({
         opportunity_mapping: opportunitySchema,
         sequence_planning: sequenceSchema,
         content_generation: contentSchema,
-        engagement_intent: engagementIntentSchema,
-        learning: learningSchema,
       };
 
-      const parsed = schemas[stage].safeParse(output);
+      const normalizedOutput =
+        stage === "research"
+          ? normalizeResearchBriefInput(output, {
+              companyName: resolvedLead.company,
+              personName: resolvedLead.name,
+            })
+          : output;
+      const parsed = schemas[stage].safeParse(normalizedOutput);
       if (!parsed.success) {
         return {
           ok: false as const,

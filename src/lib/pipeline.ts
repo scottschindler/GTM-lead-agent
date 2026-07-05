@@ -30,10 +30,8 @@ export const STRIP_STAGE_LABELS: Record<PipelineStage, string> = {
   learning: "Learning",
 };
 
-// Engagement & Intent runs after a lead has already been through this
-// pipeline (see the Reviews screen), so it's intentionally excluded here.
-// Learning also lives outside the run now: the learning agent assesses a
-// lead on the Dashboard's Complete panel once its outcome is known.
+// Engagement & Intent and Learning are retained only as historical/demo stage
+// shapes. The live agent must not run or write either stage.
 export const STAGE_ORDER: PipelineStage[] = [
   "intake",
   "research",
@@ -51,15 +49,10 @@ export const TOGGLE_LABELS: Record<ToggleableStage, string> = {
   opportunity_mapping: "Opportunity mapping",
   sequence_planning: "Sequence planning",
   content_generation: "Messaging & content generation",
-  learning: "Learning",
 };
 
 export function buildRunMessage(lead: Lead, config: PipelineConfig): string {
-  // Learning is no longer part of the run; it happens after the outcome is
-  // known (see the Dashboard's Complete panel).
-  const stages = Object.entries(config.stages).filter(
-    ([stage]) => stage !== "learning",
-  );
+  const stages = Object.entries(config.stages);
   const enabled = stages
     .filter(([, on]) => on)
     .map(([stage]) => stage)
@@ -79,7 +72,7 @@ export function buildRunMessage(lead: Lead, config: PipelineConfig): string {
     config.landingPages
       ? "Personalized landing pages are enabled: during content generation, call create_landing_page, put the returned URL in the email body, save content_generation once with the email and URL together, then call send_message."
       : "Personalized landing pages are disabled: do not call create_landing_page; draft the email without a landing page link.",
-    "Persist every stage with save_stage_output. Use the researcher subagent for one fast research pass, and start its prompt with the canonical lead id.",
-    "When content is ready, call send_message to queue the draft for BDR review in the Inbox. End by setting the lead outcome with a recommended next action.",
+    "Persist every stage with save_stage_output. Use the researcher subagent for one fast research pass with one combined search max, and start its prompt with the canonical lead id.",
+    "When content is ready, call send_message to queue the draft for BDR review in the Inbox. End by setting the lead outcome with a recommended next action. Do not run learning in this live pipeline.",
   ].join("\n");
 }

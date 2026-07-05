@@ -3,7 +3,10 @@ import { z } from "zod";
 
 import { inSessionWorkspace } from "../../../lib/workspace";
 
-import { researchBriefSchema } from "../../../lib/research-brief";
+import {
+  normalizeResearchBriefInput,
+  researchBriefSchema,
+} from "../../../lib/research-brief";
 import { assertRunIsCurrent, rootSessionIdOf } from "../../../lib/run-guard";
 import {
   leadSummary,
@@ -49,11 +52,20 @@ export default defineTool({
         }
       }
 
-      const parsed = researchBriefSchema.safeParse(brief);
+      const normalizedBrief = normalizeResearchBriefInput(brief, {
+        companyName: resolvedLead.company,
+        personName: resolvedLead.name,
+      });
+      const parsed = researchBriefSchema.safeParse(normalizedBrief);
       if (!parsed.success) {
         return {
           ok: false as const,
-          error: `Invalid research brief: ${parsed.error.message}`,
+          error: `Invalid research brief: ${parsed.error.issues
+            .map((issue) => {
+              const path = issue.path.length ? issue.path.join(".") : "brief";
+              return `${path}: ${issue.message}`;
+            })
+            .join("; ")}`,
         };
       }
 

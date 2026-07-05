@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getLead, runEngagementSimulation } from "../../../../../../agent/lib/store";
+import { getLead } from "../../../../../../agent/lib/store";
 import { inRequestWorkspace } from "../../../../../../agent/lib/workspace";
 
 export const dynamic = "force-dynamic";
@@ -17,19 +17,12 @@ export async function POST(
       return NextResponse.json({ error: "Lead not found" }, { status: 404 });
     }
 
-    try {
-      const updated = await runEngagementSimulation(id);
-      return NextResponse.json({ lead: updated });
-    } catch (error) {
-      return NextResponse.json(
-        {
-          error:
-            error instanceof Error
-              ? error.message
-              : "Engagement simulation failed",
-        },
-        { status: 400 },
-      );
-    }
+    return NextResponse.json(
+      {
+        error:
+          "Engagement intent is disabled for this app. No engagement simulation was run.",
+      },
+      { status: 410 },
+    );
   });
 }

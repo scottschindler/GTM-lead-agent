@@ -82,9 +82,11 @@ Requirements:
 Persist with `save_stage_output` stage `content_generation`, including the
 `messagingStrategy` object from step 1 and `landingPageSlug` / `landingPageUrl`
 from step 2 (omit the landing page fields if landing pages are disabled). Then
-call `send_message` with the best subject, body, and CTA. Do not move to
-learning until both the stage output and `send_message` are done.
+call `send_message` with the best subject, body, and CTA. Do not move to wrap-up
+until both the stage output and `send_message` are done.
 
 Do not claim delivery or approval. `send_message` only queues the draft with
 its send window for BDR review in the Inbox — a human approves or
-denies it there, and approval is what releases the send.
+denies it there, and approval is what releases the send. Do not move to a
+learning step from content generation; the live pipeline ends after the draft
+is queued and the recommended next action is set.

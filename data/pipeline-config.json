@@ -5,8 +5,7 @@
     "hypothesis": true,
     "opportunity_mapping": true,
     "content_generation": true,
-    "sequence_planning": true,
-    "learning": true
+    "sequence_planning": true
   },
   "landingPages": true
 }
