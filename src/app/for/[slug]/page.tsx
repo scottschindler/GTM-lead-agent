@@ -1,11 +1,27 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { getLandingPage } from "../../../../agent/lib/store";
+import {
+  WORKSPACE_COOKIE,
+  inCookieWorkspace,
+} from "../../../../agent/lib/workspace";
 import type { LandingPage } from "../../../../agent/lib/types";
 import { CompanyLogo } from "./company-logo";
 
 export const dynamic = "force-dynamic";
+
+// Landing pages are stored in the workspace of the visitor whose pipeline
+// run created them, so resolve reads through the viewer's workspace cookie.
+async function getWorkspaceLandingPage(
+  slug: string,
+): Promise<LandingPage | null> {
+  const cookieStore = await cookies();
+  return inCookieWorkspace(cookieStore.get(WORKSPACE_COOKIE)?.value, () =>
+    getLandingPage(slug),
+  );
+}
 
 function firstName(name: string): string {
   return name.trim().split(/\s+/)[0] ?? name;
@@ -17,7 +33,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const page = await getLandingPage(slug);
+  const page = await getWorkspaceLandingPage(slug);
   if (!page) {
     return { title: "Vercel" };
   }
@@ -55,7 +71,7 @@ export default async function ProspectLandingPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const page = await getLandingPage(slug);
+  const page = await getWorkspaceLandingPage(slug);
   if (!page) {
     notFound();
   }

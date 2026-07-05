@@ -1,6 +1,8 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { inSessionWorkspace } from "../lib/workspace";
+
 import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import {
   computeSendWindow,
@@ -31,52 +33,54 @@ export default defineTool({
     timezone: z.string().optional(),
   }),
   async execute({ leadId, subject, body, cta, timezone }, ctx) {
-    await assertRunIsCurrent(rootSessionIdOf(ctx.session));
+    return inSessionWorkspace(ctx.session, async () => {
+      await assertRunIsCurrent(rootSessionIdOf(ctx.session));
 
-    const lead = await getLead(leadId);
-    if (!lead) {
-      return { ok: false as const, error: `Lead not found: ${leadId}` };
-    }
+      const lead = await getLead(leadId);
+      if (!lead) {
+        return { ok: false as const, error: `Lead not found: ${leadId}` };
+      }
 
-    const sendWindow = computeSendWindow(
-      timezone ?? lead.timezone ?? "America/Los_Angeles",
-    );
+      const sendWindow = computeSendWindow(
+        timezone ?? lead.timezone ?? "America/Los_Angeles",
+      );
 
-    const existing = (lead.stages.content_generation?.output ??
-      {}) as Partial<ContentGenerationOutput>;
-    body = emailBodyWithLandingPage(body, existing.landingPageUrl);
+      const existing = (lead.stages.content_generation?.output ??
+        {}) as Partial<ContentGenerationOutput>;
+      body = emailBodyWithLandingPage(body, existing.landingPageUrl);
 
-    // Drafts always start as "drafted". A BDR approves or denies them in the
-    // Inbox — approval is what gates the send status.
-    const send = {
-      status: "drafted" as const,
-      subject,
-      body,
-      cta,
-      sendWindow,
-    };
+      // Drafts always start as "drafted". A BDR approves or denies them in the
+      // Inbox — approval is what gates the send status.
+      const send = {
+        status: "drafted" as const,
+        subject,
+        body,
+        cta,
+        sendWindow,
+      };
 
-    const output: ContentGenerationOutput = {
-      subjectLines: existing.subjectLines?.length ? existing.subjectLines : [subject],
-      emailBody: emailBodyWithLandingPage(
-        presentText(existing.emailBody, body),
-        existing.landingPageUrl,
-      ),
-      cta: presentText(existing.cta, cta),
-      objectionResponses: existing.objectionResponses ?? [],
-      landingPageSlug: existing.landingPageSlug,
-      landingPageUrl: existing.landingPageUrl,
-      send,
-    };
+      const output: ContentGenerationOutput = {
+        subjectLines: existing.subjectLines?.length ? existing.subjectLines : [subject],
+        emailBody: emailBodyWithLandingPage(
+          presentText(existing.emailBody, body),
+          existing.landingPageUrl,
+        ),
+        cta: presentText(existing.cta, cta),
+        objectionResponses: existing.objectionResponses ?? [],
+        landingPageSlug: existing.landingPageSlug,
+        landingPageUrl: existing.landingPageUrl,
+        send,
+      };
 
-    const updated = await saveStageOutput(leadId, "content_generation", output);
-    return {
-      ok: true as const,
-      delivered: false as const,
-      message:
-        "Draft recorded and queued for BDR review in the Inbox. Email was not delivered.",
-      lead: leadSummary(updated),
-      output: send,
-    };
+      const updated = await saveStageOutput(leadId, "content_generation", output);
+      return {
+        ok: true as const,
+        delivered: false as const,
+        message:
+          "Draft recorded and queued for BDR review in the Inbox. Email was not delivered.",
+        lead: leadSummary(updated),
+        output: send,
+      };
+    });
   },
 });

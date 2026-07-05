@@ -1,6 +1,8 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { inSessionWorkspace } from "../lib/workspace";
+
 import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import { createLead, leadSummary, readPipelineConfig } from "../lib/store";
 
@@ -17,10 +19,12 @@ export default defineTool({
     id: z.string().optional(),
   }),
   async execute(input, ctx) {
-    await assertRunIsCurrent(rootSessionIdOf(ctx.session));
+    return inSessionWorkspace(ctx.session, async () => {
+      await assertRunIsCurrent(rootSessionIdOf(ctx.session));
 
-    const lead = await createLead(input);
-    const pipelineConfig = await readPipelineConfig();
-    return { lead: leadSummary(lead), pipelineConfig };
+      const lead = await createLead(input);
+      const pipelineConfig = await readPipelineConfig();
+      return { lead: leadSummary(lead), pipelineConfig };
+    });
   },
 });

@@ -1,6 +1,8 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { inSessionWorkspace } from "../lib/workspace";
+
 import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import { saveInsights } from "../lib/store";
 
@@ -26,9 +28,11 @@ export default defineTool({
     insights: z.array(insightSchema).min(1),
   }),
   async execute({ leadId, insights }, ctx) {
-    await assertRunIsCurrent(rootSessionIdOf(ctx.session));
+    return inSessionWorkspace(ctx.session, async () => {
+      await assertRunIsCurrent(rootSessionIdOf(ctx.session));
 
-    const stored = await saveInsights(leadId, insights);
-    return { ok: true as const, saved: stored.length };
+      const stored = await saveInsights(leadId, insights);
+      return { ok: true as const, saved: stored.length };
+    });
   },
 });

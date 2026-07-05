@@ -1,5 +1,4 @@
-import { promises as fs } from "node:fs";
-import path from "node:path";
+import { storage } from "./storage";
 
 // Eve sessions are durable workflows: aborting the client's stream (what the
 // dashboard's "Reset" button does via `agent.stop()`) only detaches the
@@ -14,7 +13,11 @@ import path from "node:path";
 // active when it first wrote, then checks that generation on every later
 // write. A run that predates a Reset finds its generation stale and throws
 // instead of persisting.
-const RUN_STATE_PATH = path.join(process.cwd(), "data", "run-state.json");
+//
+// State lives in the workspace-namespaced storage backend, so the
+// one-active-run rule is per workspace: visitors never queue behind each
+// other's runs, only behind their own.
+const RUN_STATE_KEY = "run-state";
 
 type RunState = {
   generation: number;
@@ -47,26 +50,19 @@ async function withRunStateLock<T>(work: () => Promise<T>): Promise<T> {
 }
 
 async function readRunState(): Promise<RunState> {
-  try {
-    const raw = await fs.readFile(RUN_STATE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Partial<RunState>;
-    return {
-      generation: parsed.generation ?? 0,
-      sessions: parsed.sessions ?? {},
-      activeRun: parsed.activeRun,
-    };
-  } catch {
+  const parsed = await storage().getJson<Partial<RunState>>(RUN_STATE_KEY);
+  if (!parsed) {
     return structuredClone(DEFAULT_STATE);
   }
+  return {
+    generation: parsed.generation ?? 0,
+    sessions: parsed.sessions ?? {},
+    activeRun: parsed.activeRun,
+  };
 }
 
 async function writeRunState(state: RunState): Promise<void> {
-  await fs.mkdir(path.dirname(RUN_STATE_PATH), { recursive: true });
-  await fs.writeFile(
-    RUN_STATE_PATH,
-    `${JSON.stringify(state, null, 2)}\n`,
-    "utf8",
-  );
+  await storage().setJson(RUN_STATE_KEY, state);
 }
 
 /**

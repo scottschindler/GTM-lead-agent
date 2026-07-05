@@ -1,6 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { promises as fs } from "node:fs";
-import path from "node:path";
 
 import { buildDemoInboxLeads } from "./demo-inbox-state";
 import { bumpRunGeneration } from "./run-guard";
@@ -9,6 +7,7 @@ import {
   SEED_LEAD_PROFILES,
   type SeedLeadProfile,
 } from "./seed-leads";
+import { storage } from "./storage";
 import {
   DEFAULT_PIPELINE_CONFIG,
   TOGGLEABLE_STAGES,
@@ -26,26 +25,26 @@ import {
   type ToggleableStage,
 } from "./types";
 
-const ROOT = process.cwd();
-const DATA_DIR = path.join(ROOT, "data");
-const LEADS_DIR = path.join(DATA_DIR, "leads");
-const ACTIVITY_PATH = path.join(DATA_DIR, "activity.jsonl");
-const CONFIG_PATH = path.join(DATA_DIR, "pipeline-config.json");
-const INSIGHTS_PATH = path.join(DATA_DIR, "insights.json");
-const LANDING_PAGES_DIR = path.join(DATA_DIR, "landing-pages");
+// All persistence goes through the storage backend (JSON files locally,
+// Upstash Redis in production) and is namespaced by the caller's workspace —
+// see storage.ts / workspace.ts. Entry points (API routes, tools, hooks)
+// establish the workspace; these functions just read and write within it.
 
-async function ensureDirs(): Promise<void> {
-  await fs.mkdir(LEADS_DIR, { recursive: true });
-  await fs.mkdir(LANDING_PAGES_DIR, { recursive: true });
+const CONFIG_KEY = "config";
+const INSIGHTS_KEY = "insights";
+const ACTIVITY_KEY = "activity";
+
+function leadKey(id: string): string {
+  return `lead:${id}`;
 }
 
-function leadPath(id: string): string {
-  return path.join(LEADS_DIR, `${id}.json`);
+function landingPageKey(slug: string): string {
+  return `landing:${slug}`;
 }
 
 // Only keep known toggleable stage keys — drops stale keys (e.g. a
 // previously-toggleable stage that has since moved out of the pipeline) that
-// may still linger in an old config file on disk.
+// may still linger in an old stored config.
 function sanitizeStages(
   stages: Partial<Record<ToggleableStage, boolean>> | undefined,
 ): Record<ToggleableStage, boolean> {
@@ -59,30 +58,25 @@ function sanitizeStages(
 }
 
 export async function readPipelineConfig(): Promise<PipelineConfig> {
-  await ensureDirs();
-  try {
-    const raw = await fs.readFile(CONFIG_PATH, "utf8");
-    const parsed = JSON.parse(raw) as Partial<PipelineConfig>;
-    return {
-      stages: sanitizeStages(parsed.stages),
-      landingPages:
-        parsed.landingPages ?? DEFAULT_PIPELINE_CONFIG.landingPages,
-    };
-  } catch {
+  const parsed = await storage().getJson<Partial<PipelineConfig>>(CONFIG_KEY);
+  if (!parsed) {
     return structuredClone(DEFAULT_PIPELINE_CONFIG);
   }
+  return {
+    stages: sanitizeStages(parsed.stages),
+    landingPages: parsed.landingPages ?? DEFAULT_PIPELINE_CONFIG.landingPages,
+  };
 }
 
 export async function writePipelineConfig(
   config: PipelineConfig,
 ): Promise<PipelineConfig> {
-  await ensureDirs();
   const next: PipelineConfig = {
     stages: sanitizeStages(config.stages),
     landingPages:
       config.landingPages ?? DEFAULT_PIPELINE_CONFIG.landingPages,
   };
-  await fs.writeFile(CONFIG_PATH, `${JSON.stringify(next, null, 2)}\n`, "utf8");
+  await storage().setJson(CONFIG_KEY, next);
   return next;
 }
 
@@ -94,13 +88,11 @@ export async function isStageEnabled(
 }
 
 export async function listLeads(): Promise<Lead[]> {
-  await ensureDirs();
-  const files = await fs.readdir(LEADS_DIR);
+  const keys = await storage().listKeys("lead:");
   const leads: Lead[] = [];
-  for (const file of files) {
-    if (!file.endsWith(".json")) continue;
-    const raw = await fs.readFile(path.join(LEADS_DIR, file), "utf8");
-    leads.push(JSON.parse(raw) as Lead);
+  for (const key of keys) {
+    const lead = await storage().getJson<Lead>(key);
+    if (lead) leads.push(lead);
   }
   const sorted = leads.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const hasAllSeeds = SEED_LEAD_PROFILES.every((profile) =>
@@ -113,13 +105,7 @@ export async function listLeads(): Promise<Lead[]> {
 }
 
 export async function getLead(id: string): Promise<Lead | null> {
-  await ensureDirs();
-  try {
-    const raw = await fs.readFile(leadPath(id), "utf8");
-    return JSON.parse(raw) as Lead;
-  } catch {
-    return null;
-  }
+  return storage().getJson<Lead>(leadKey(id));
 }
 
 function normalized(value: string): string {
@@ -212,13 +198,8 @@ export async function resolveLeadReference(
 }
 
 export async function saveLead(lead: Lead): Promise<Lead> {
-  await ensureDirs();
   const next = { ...lead, updatedAt: new Date().toISOString() };
-  await fs.writeFile(
-    leadPath(next.id),
-    `${JSON.stringify(next, null, 2)}\n`,
-    "utf8",
-  );
+  await storage().setJson(leadKey(next.id), next);
   return next;
 }
 
@@ -253,7 +234,6 @@ export function isLeadPending(lead: Lead): boolean {
 }
 
 export async function ensureSeedLeads(): Promise<Lead[]> {
-  await ensureDirs();
   const leads: Lead[] = [];
   for (const profile of SEED_LEAD_PROFILES) {
     const existing = await getLead(profile.id);
@@ -453,7 +433,6 @@ export async function appendActivity(
     timestamp?: string;
   },
 ): Promise<ActivityEvent> {
-  await ensureDirs();
   const entry: ActivityEvent = {
     id: event.id ?? randomUUID(),
     timestamp: event.timestamp ?? new Date().toISOString(),
@@ -462,7 +441,7 @@ export async function appendActivity(
     summary: event.summary,
     detail: event.detail,
   };
-  await fs.appendFile(ACTIVITY_PATH, `${JSON.stringify(entry)}\n`, "utf8");
+  await storage().appendLog(ACTIVITY_KEY, entry);
   return entry;
 }
 
@@ -470,21 +449,14 @@ export async function readActivity(options?: {
   since?: string;
   limit?: number;
 }): Promise<ActivityEvent[]> {
-  await ensureDirs();
-  try {
-    const raw = await fs.readFile(ACTIVITY_PATH, "utf8");
-    const lines = raw.split("\n").filter(Boolean);
-    let events = lines.map((line) => JSON.parse(line) as ActivityEvent);
-    if (options?.since) {
-      events = events.filter((event) => event.timestamp > options.since!);
-    }
-    if (options?.limit) {
-      events = events.slice(-options.limit);
-    }
-    return events;
-  } catch {
-    return [];
+  let events = (await storage().readLog(ACTIVITY_KEY)) as ActivityEvent[];
+  if (options?.since) {
+    events = events.filter((event) => event.timestamp > options.since!);
   }
+  if (options?.limit) {
+    events = events.slice(-options.limit);
+  }
+  return events;
 }
 
 export type StoredInsight = LearningInsight & {
@@ -494,13 +466,7 @@ export type StoredInsight = LearningInsight & {
 };
 
 export async function readInsights(): Promise<StoredInsight[]> {
-  await ensureDirs();
-  try {
-    const raw = await fs.readFile(INSIGHTS_PATH, "utf8");
-    return JSON.parse(raw) as StoredInsight[];
-  } catch {
-    return [];
-  }
+  return (await storage().getJson<StoredInsight[]>(INSIGHTS_KEY)) ?? [];
 }
 
 export async function saveInsights(
@@ -515,43 +481,23 @@ export async function saveInsights(
     leadId,
     createdAt: now,
   }));
-  const next = [...existing, ...stored];
-  await fs.writeFile(
-    INSIGHTS_PATH,
-    `${JSON.stringify(next, null, 2)}\n`,
-    "utf8",
-  );
+  await storage().setJson(INSIGHTS_KEY, [...existing, ...stored]);
   return stored;
 }
 
-function landingPagePath(slug: string): string {
-  return path.join(LANDING_PAGES_DIR, `${slug}.json`);
-}
-
 export async function saveLandingPage(page: LandingPage): Promise<LandingPage> {
-  await ensureDirs();
-  await fs.writeFile(
-    landingPagePath(page.slug),
-    `${JSON.stringify(page, null, 2)}\n`,
-    "utf8",
-  );
+  await storage().setJson(landingPageKey(page.slug), page);
   return page;
 }
 
 export async function getLandingPage(
   slug: string,
 ): Promise<LandingPage | null> {
-  // Slugs come from public URLs; never let them escape the landing pages dir.
+  // Slugs come from public URLs; never let them escape the landing-page keys.
   if (!/^[a-z0-9-]+$/.test(slug)) {
     return null;
   }
-  await ensureDirs();
-  try {
-    const raw = await fs.readFile(landingPagePath(slug), "utf8");
-    return JSON.parse(raw) as LandingPage;
-  } catch {
-    return null;
-  }
+  return storage().getJson<LandingPage>(landingPageKey(slug));
 }
 
 const ENGAGEMENT_SIGNALS: Array<{
@@ -684,8 +630,9 @@ export async function runEngagementSimulation(leadId: string): Promise<Lead> {
 export type ResetFactoryMode = "clean" | "demo";
 
 /**
- * Reset the factory to its initial state: all seed leads back to pending,
- * dynamically created lead files removed, and the activity log truncated.
+ * Reset the current workspace to its initial state: all seed leads back to
+ * pending, dynamically created leads removed, landing pages cleared, and the
+ * activity log truncated.
  *
  * Pass `mode: "demo"` to seed 2 drafted + 4 approved leads for the interview
  * review-queue opening state; remaining seeds stay fresh/pending.
@@ -694,7 +641,6 @@ export async function resetFactory(
   options: { mode?: ResetFactoryMode } = {},
 ): Promise<Lead[]> {
   const mode = options.mode ?? "clean";
-  await ensureDirs();
 
   // Kill switch: any pipeline run still executing server-side (the client
   // "Reset" button only aborts the browser's own stream) will find its
@@ -702,20 +648,15 @@ export async function resetFactory(
   // top of the freshly-reset leads below.
   await bumpRunGeneration();
 
-  const files = await fs.readdir(LEADS_DIR);
-  for (const file of files) {
-    if (!file.endsWith(".json")) continue;
-    const id = file.replace(/\.json$/, "");
+  for (const key of await storage().listKeys("lead:")) {
+    const id = key.replace(/^lead:/, "");
     if (!SEED_LEAD_IDS.has(id)) {
-      await fs.rm(path.join(LEADS_DIR, file), { force: true });
+      await storage().del(key);
     }
   }
 
-  const landingPages = await fs.readdir(LANDING_PAGES_DIR);
-  for (const file of landingPages) {
-    if (file.endsWith(".json")) {
-      await fs.rm(path.join(LANDING_PAGES_DIR, file), { force: true });
-    }
+  for (const key of await storage().listKeys("landing:")) {
+    await storage().del(key);
   }
 
   const now = new Date().toISOString();
@@ -738,7 +679,7 @@ export async function resetFactory(
     }
   }
 
-  await fs.writeFile(ACTIVITY_PATH, "", "utf8");
+  await storage().clearLog(ACTIVITY_KEY);
   return leads;
 }
 

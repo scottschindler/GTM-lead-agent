@@ -3,6 +3,8 @@ import { randomUUID } from "node:crypto";
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { inSessionWorkspace } from "../lib/workspace";
+
 import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import {
   getLead,
@@ -91,49 +93,51 @@ export default defineTool({
     ctaUrl: z.string().url().optional().describe("Where the CTA points; omit to use a mailto fallback"),
   }),
   async execute(input, ctx) {
-    await assertRunIsCurrent(rootSessionIdOf(ctx.session));
+    return inSessionWorkspace(ctx.session, async () => {
+      await assertRunIsCurrent(rootSessionIdOf(ctx.session));
 
-    const config = await readPipelineConfig();
-    if (!config.landingPages) {
-      return {
-        ok: false as const,
-        error:
-          "Personalized landing pages are disabled in the pipeline config. Draft the email without a landing page link and continue.",
+      const config = await readPipelineConfig();
+      if (!config.landingPages) {
+        return {
+          ok: false as const,
+          error:
+            "Personalized landing pages are disabled in the pipeline config. Draft the email without a landing page link and continue.",
+        };
+      }
+
+      const lead = await getLead(input.leadId);
+      if (!lead) {
+        return { ok: false as const, error: `Lead not found: ${input.leadId}` };
+      }
+
+      const slug = `${slugify(lead.company)}-${randomUUID().slice(0, 8)}`;
+      const page: LandingPage = {
+        slug,
+        leadId: lead.id,
+        createdAt: new Date().toISOString(),
+        recipientName: lead.name,
+        company: lead.company,
+        companyDomain: lead.companyDomain,
+        brandColor: input.brandColor?.toLowerCase(),
+        headline: input.headline,
+        subheadline: input.subheadline,
+        personalNote: input.personalNote,
+        opportunities: input.opportunities,
+        stats: input.stats,
+        stories: input.stories,
+        ctaLabel: input.ctaLabel,
+        ctaUrl: input.ctaUrl,
       };
-    }
 
-    const lead = await getLead(input.leadId);
-    if (!lead) {
-      return { ok: false as const, error: `Lead not found: ${input.leadId}` };
-    }
+      await saveLandingPage(page);
+      const url = `${baseUrl()}/for/${slug}`;
 
-    const slug = `${slugify(lead.company)}-${randomUUID().slice(0, 8)}`;
-    const page: LandingPage = {
-      slug,
-      leadId: lead.id,
-      createdAt: new Date().toISOString(),
-      recipientName: lead.name,
-      company: lead.company,
-      companyDomain: lead.companyDomain,
-      brandColor: input.brandColor?.toLowerCase(),
-      headline: input.headline,
-      subheadline: input.subheadline,
-      personalNote: input.personalNote,
-      opportunities: input.opportunities,
-      stats: input.stats,
-      stories: input.stories,
-      ctaLabel: input.ctaLabel,
-      ctaUrl: input.ctaUrl,
-    };
-
-    await saveLandingPage(page);
-    const url = `${baseUrl()}/for/${slug}`;
-
-    return {
-      ok: true as const,
-      slug,
-      url,
-      message: `Personalized landing page created. Include this exact URL in the outreach email, then save content_generation once with the email body, landingPageSlug, landingPageUrl, and send draft: ${url}`,
-    };
+      return {
+        ok: true as const,
+        slug,
+        url,
+        message: `Personalized landing page created. Include this exact URL in the outreach email, then save content_generation once with the email body, landingPageSlug, landingPageUrl, and send draft: ${url}`,
+      };
+    });
   },
 });

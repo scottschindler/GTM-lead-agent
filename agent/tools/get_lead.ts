@@ -1,6 +1,8 @@
 import { defineTool } from "eve/tools";
 import { z } from "zod";
 
+import { inSessionWorkspace } from "../lib/workspace";
+
 import {
   claimPipelineRun,
   PipelineRunAlreadyActiveError,
@@ -21,51 +23,53 @@ export default defineTool({
     includeStageOutputs: z.boolean().optional(),
   }),
   async execute({ leadId, includeStageOutputs }, ctx) {
-    const resolution = await resolveLeadReference(leadId);
-    const lead = resolution.lead;
-    if (!lead) {
+    return inSessionWorkspace(ctx.session, async () => {
+      const resolution = await resolveLeadReference(leadId);
+      const lead = resolution.lead;
+      if (!lead) {
+        return {
+          found: false as const,
+          leadId,
+          candidates: resolution.ambiguousCandidates,
+        };
+      }
+
+      try {
+        await claimPipelineRun(rootSessionIdOf(ctx.session), lead.id);
+      } catch (error) {
+        if (error instanceof PipelineRunAlreadyActiveError) {
+          return {
+            found: true as const,
+            blocked: true as const,
+            error: error.message,
+            requestedLeadId: leadId,
+            resolvedLeadId: lead.id,
+            matchedBy: resolution.matchedBy,
+          };
+        }
+        if (error instanceof StaleRunError) {
+          return {
+            found: true as const,
+            blocked: true as const,
+            error: error.message,
+            requestedLeadId: leadId,
+            resolvedLeadId: lead.id,
+            matchedBy: resolution.matchedBy,
+          };
+        }
+        throw error;
+      }
+
+      const pipelineConfig = await readPipelineConfig();
       return {
-        found: false as const,
-        leadId,
-        candidates: resolution.ambiguousCandidates,
+        found: true as const,
+        blocked: false as const,
+        lead: includeStageOutputs ? lead : leadSummary(lead),
+        requestedLeadId: leadId,
+        resolvedLeadId: lead.id,
+        matchedBy: resolution.matchedBy,
+        pipelineConfig,
       };
-    }
-
-    try {
-      await claimPipelineRun(rootSessionIdOf(ctx.session), lead.id);
-    } catch (error) {
-      if (error instanceof PipelineRunAlreadyActiveError) {
-        return {
-          found: true as const,
-          blocked: true as const,
-          error: error.message,
-          requestedLeadId: leadId,
-          resolvedLeadId: lead.id,
-          matchedBy: resolution.matchedBy,
-        };
-      }
-      if (error instanceof StaleRunError) {
-        return {
-          found: true as const,
-          blocked: true as const,
-          error: error.message,
-          requestedLeadId: leadId,
-          resolvedLeadId: lead.id,
-          matchedBy: resolution.matchedBy,
-        };
-      }
-      throw error;
-    }
-
-    const pipelineConfig = await readPipelineConfig();
-    return {
-      found: true as const,
-      blocked: false as const,
-      lead: includeStageOutputs ? lead : leadSummary(lead),
-      requestedLeadId: leadId,
-      resolvedLeadId: lead.id,
-      matchedBy: resolution.matchedBy,
-      pipelineConfig,
-    };
+    });
   },
 });

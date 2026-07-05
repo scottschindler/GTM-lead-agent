@@ -2,6 +2,7 @@ import { defineHook } from "eve/hooks";
 
 import { buildActivityEntries } from "../../../lib/activity-entries";
 import { appendActivity } from "../../../lib/store";
+import { inSessionWorkspace } from "../../../lib/workspace";
 
 // Parent-agent hooks never fire for subagent turns, so without this hook the
 // researcher's web searches and brief-saving are invisible in the dashboard's
@@ -24,18 +25,20 @@ export default defineHook({
       if (!LOGGED_EVENT_TYPES.has(event.type)) return;
 
       const data = "data" in event ? event.data : undefined;
-      for (const entry of buildActivityEntries(event.type, data)) {
-        try {
-          await appendActivity({
-            sessionId: ctx.session.id,
-            type: entry.type,
-            summary: entry.summary,
-            detail: entry.detail,
-          });
-        } catch (error) {
-          console.error("[researcher activity hook]", error);
+      await inSessionWorkspace(ctx.session, async () => {
+        for (const entry of buildActivityEntries(event.type, data)) {
+          try {
+            await appendActivity({
+              sessionId: ctx.session.id,
+              type: entry.type,
+              summary: entry.summary,
+              detail: entry.detail,
+            });
+          } catch (error) {
+            console.error("[researcher activity hook]", error);
+          }
         }
-      }
+      });
     },
   },
 });
