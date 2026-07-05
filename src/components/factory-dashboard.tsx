@@ -427,6 +427,8 @@ export function FactoryDashboard() {
   }, [config, lead]);
 
   // Events newer than the latest completed stage belong to the active stage.
+  // When a server run is active, use its start time as a lower bound too so
+  // stale events from a previous reset/killed run cannot bleed into this one.
   const activeStageEvents = useMemo(() => {
     if (!lead) return [];
     const lastStageWrite = STAGE_ORDER.reduce((latest, stage) => {
@@ -435,8 +437,13 @@ export function FactoryDashboard() {
         ? record.updatedAt
         : latest;
     }, "");
-    return activity.filter((event) => event.timestamp > lastStageWrite);
-  }, [activity, lead]);
+    const runStartedAt = runState?.activeRun?.startedAt ?? "";
+    const boundary =
+      runStartedAt && runStartedAt > lastStageWrite
+        ? runStartedAt
+        : lastStageWrite;
+    return activity.filter((event) => event.timestamp > boundary);
+  }, [activity, lead, runState?.activeRun?.startedAt]);
 
   async function runPipeline() {
     if (

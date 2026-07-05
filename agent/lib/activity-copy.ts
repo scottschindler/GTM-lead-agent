@@ -57,16 +57,13 @@ const LIVE_HIDDEN_EVENT_TYPES = new Set([
   "message.received",
   "message.completed",
   "step.completed",
+  "step.failed",
   "turn.completed",
+  "turn.failed",
   "session.waiting",
   "session.completed",
+  "session.failed",
   "compaction.requested",
-]);
-
-const RECOVERY_TOOL_RESULTS = new Set([
-  "save_stage_output",
-  "send_message",
-  "set_lead_outcome",
 ]);
 
 function asRecord(value: unknown): Record<string, unknown> {
@@ -126,22 +123,6 @@ function failureReason(output: unknown): string | undefined {
   return reason ? oneLine(reason) : undefined;
 }
 
-function recoveredByLaterEvent(
-  eventIndex: number | undefined,
-  events: ActivityEvent[] | undefined,
-): boolean {
-  if (eventIndex === undefined || eventIndex <= 0 || !events) return false;
-  return events.slice(0, eventIndex).some((event) => {
-    if (event.type === "turn.completed" || event.type === "session.waiting") {
-      return true;
-    }
-    if (event.type !== "action.result" || activityResultFailed(event)) {
-      return false;
-    }
-    return RECOVERY_TOOL_RESULTS.has(activityTool(event) ?? "");
-  });
-}
-
 export function describePipelineToolCall(toolName: string, input?: unknown): string {
   if (toolName === "load_skill") {
     const skill = skillKey(input);
@@ -181,9 +162,18 @@ export function describePipelineToolFailure(
   output?: unknown,
 ): string {
   const reason = failureReason(output);
-  return reason
-    ? `${toolName} needs attention: ${reason}`
-    : `${toolName} needs attention`;
+  if (reason && /stopped by a reset/i.test(reason)) {
+    return "Previous run was stopped after reset";
+  }
+  if (reason && /schema/i.test(reason)) {
+    return toolName === "researcher"
+      ? "Research output was incomplete"
+      : "Step output was incomplete";
+  }
+  if (toolName === "researcher" || toolName === "save_research_brief") {
+    return "Research needs another pass";
+  }
+  return "Step needs another pass";
 }
 
 export function describePipelineSubagent(name: string): string {
@@ -240,15 +230,10 @@ export function humanizeActivitySummary(event: ActivityEvent): string {
 
 export function shouldShowLivePipelineEvent(
   event: ActivityEvent,
-  eventIndex?: number,
-  events?: ActivityEvent[],
 ): boolean {
   if (LIVE_HIDDEN_EVENT_TYPES.has(event.type)) return false;
   if (event.type === "action.result") {
-    return (
-      activityResultFailed(event) &&
-      !recoveredByLaterEvent(eventIndex, events)
-    );
+    return false;
   }
   if (event.type === "actions.requested" && activityTool(event) === "tool") {
     return false;

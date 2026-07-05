@@ -8,15 +8,12 @@ import { inSessionWorkspace } from "../../../lib/workspace";
 // researcher's web searches and brief-saving are invisible in the dashboard's
 // live progress log.
 //
-// Only tool activity and failures are logged. Lifecycle events from this child
+// Only tool call/result activity is logged. Lifecycle events from this child
 // session (turn.completed, session.waiting, …) must stay out of the shared
 // feed: the dashboard reads the newest of those as "the pipeline run ended".
 const LOGGED_EVENT_TYPES = new Set([
   "actions.requested",
   "action.result",
-  "step.failed",
-  "turn.failed",
-  "session.failed",
 ]);
 
 export default defineHook({
