@@ -1,12 +1,12 @@
 import { defineAgent } from "eve";
 import { mockModel } from "eve/evals";
 
-const realModel = "openai/gpt-5.4-mini";
+const realModel = "anthropic/claude-sonnet-5";
 
 const evalModel = mockModel({
   // Use a known gateway identity so compaction metadata resolves in eval mode.
-  provider: "openai",
-  modelId: "gpt-5.4-mini",
+  provider: "anthropic",
+  modelId: "claude-sonnet-5",
   respond({ lastUserMessage, toolResults }) {
     const message = lastUserMessage ?? "";
 

@@ -174,6 +174,23 @@ function leadPipelineSettled(lead: Lead, config: PipelineConfig): boolean {
   );
 }
 
+function leadHasNewPipelineWrite(
+  previous: Lead,
+  next: Lead,
+  config: PipelineConfig,
+): boolean {
+  return STAGE_ORDER.some((stage) => {
+    if (stage === "intake" || !stageEnabled(stage, config)) return false;
+    const previousRecord = stageRecord(previous, stage);
+    const nextRecord = stageRecord(next, stage);
+    return (
+      nextRecord.status !== "pending" &&
+      (nextRecord.status !== previousRecord.status ||
+        nextRecord.updatedAt !== previousRecord.updatedAt)
+    );
+  });
+}
+
 function StageCard({
   stage,
   record,
@@ -535,7 +552,20 @@ export function FactoryDashboard() {
     setClientRun({ leadId: lead.id, startedAt: new Date().toISOString() });
     try {
       await agent.send({ message: buildRunMessage(lead, config) });
-      await Promise.all([refreshLeads(), refreshActivity()]);
+      const [refreshedLeads] = await Promise.all([
+        refreshLeads(),
+        refreshActivity(),
+      ]);
+      const refreshedLead = refreshedLeads.find((item) => item.id === lead.id);
+      if (
+        refreshedLead &&
+        !leadHasNewPipelineWrite(lead, refreshedLead, config) &&
+        !leadPipelineSettled(refreshedLead, config)
+      ) {
+        setError(
+          "Pipeline run ended before any stage updated. The agent did not produce tool activity, so no pipeline output was saved.",
+        );
+      }
     } catch (err) {
       setClientRun(null);
       setError(describeAgentError(err));
