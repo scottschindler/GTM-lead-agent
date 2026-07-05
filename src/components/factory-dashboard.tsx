@@ -37,6 +37,8 @@ type PipelineRunState = {
   };
 };
 
+type PipelineActiveRun = NonNullable<PipelineRunState["activeRun"]>;
+
 function statusColor(status: StageRecord["status"]): string {
   switch (status) {
     case "done":
@@ -130,8 +132,30 @@ const STAGE_TOGGLE_BY_STAGE: Partial<
   sequence_planning: "sequence_planning",
 };
 
+const CLIENT_RUN_FOLLOW_TTL_MS = 45 * 60 * 1000;
+
 function isTerminalActivityEvent(event: ActivityEvent): boolean {
   return TERMINAL_ACTIVITY_TYPES.has(event.type);
+}
+
+function latestTerminalActivitySince(
+  events: ActivityEvent[],
+  startedAt?: string,
+): ActivityEvent | null {
+  if (!startedAt) return null;
+  return (
+    events.find(
+      (event) =>
+        event.timestamp >= startedAt && isTerminalActivityEvent(event),
+    ) ?? null
+  );
+}
+
+function clientRunExpired(run: PipelineActiveRun | null): boolean {
+  if (!run) return false;
+  const startedAt = Date.parse(run.startedAt);
+  if (Number.isNaN(startedAt)) return true;
+  return Date.now() - startedAt > CLIENT_RUN_FOLLOW_TTL_MS;
 }
 
 function stageEnabled(stage: PipelineStage, config: PipelineConfig): boolean {
@@ -266,6 +290,7 @@ export function FactoryDashboard() {
   const [config, setConfig] = useState<PipelineConfig | null>(null);
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [runState, setRunState] = useState<PipelineRunState | null>(null);
+  const [clientRun, setClientRun] = useState<PipelineActiveRun | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Surface turn failures even when nothing awaits them (e.g. the stream
@@ -336,55 +361,92 @@ export function FactoryDashboard() {
 
   const lead = useMemo(() => {
     if (leads.length === 0) return null;
-    const preferredLeadId = runState?.activeRun?.leadId ?? activeLeadId;
+    const preferredLeadId =
+      runState?.activeRun?.leadId ?? clientRun?.leadId ?? activeLeadId;
     if (preferredLeadId) {
       return leads.find((item) => item.id === preferredLeadId) ?? leads[0];
     }
     return leads[0];
-  }, [activeLeadId, leads, runState?.activeRun?.leadId]);
+  }, [activeLeadId, clientRun?.leadId, leads, runState?.activeRun?.leadId]);
 
   const agentBusy = agent.status === "submitted" || agent.status === "streaming";
   const stopAgent = agent.stop;
   const serverActiveLeadId = runState?.activeRun?.leadId;
+  const clientRunLeadId = clientRun?.leadId;
+  const clientRunStartedAt = clientRun?.startedAt;
   const serverRunActiveForSelectedLead =
     Boolean(serverActiveLeadId) && serverActiveLeadId === lead?.id;
+  const clientRunActiveForSelectedLead =
+    Boolean(clientRunLeadId) && clientRunLeadId === lead?.id;
   const selectedLeadSettled =
     lead && config ? leadPipelineSettled(lead, config) : false;
+  const trackedRunStartedAt = serverRunActiveForSelectedLead
+    ? runState?.activeRun?.startedAt
+    : clientRunActiveForSelectedLead
+      ? clientRunStartedAt
+      : undefined;
 
   // The eve client stream can desync from the server, leaving `agent.status`
   // pinned on "streaming" after the turn finished. Treat server lifecycle
-  // terminals and persisted lead completion as authoritative escape hatches.
-  const serverTurnTerminal =
-    activity.length > 0 && isTerminalActivityEvent(activity[0]);
+  // terminals from this run and persisted lead completion as authoritative
+  // escape hatches.
+  const trackedRunTerminal = Boolean(
+    latestTerminalActivitySince(activity, trackedRunStartedAt),
+  );
+  const localRunExpired = clientRunExpired(clientRun);
+  const runActiveForSelectedLead =
+    agentBusy ||
+    serverRunActiveForSelectedLead ||
+    clientRunActiveForSelectedLead;
 
   const isBusy =
     runSubmitting ||
-    ((agentBusy || serverRunActiveForSelectedLead) &&
-      !serverTurnTerminal &&
-      !selectedLeadSettled);
+    (runActiveForSelectedLead &&
+      !trackedRunTerminal &&
+      !selectedLeadSettled &&
+      !localRunExpired);
+
+  const shouldClearClientRun =
+    Boolean(clientRunLeadId) &&
+    (serverActiveLeadId === clientRunLeadId ||
+      selectedLeadSettled ||
+      trackedRunTerminal ||
+      localRunExpired);
+
+  useEffect(() => {
+    if (!shouldClearClientRun) return;
+    const id = window.setTimeout(() => {
+      setClientRun(null);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [shouldClearClientRun]);
 
   // If the server or lead state says the turn ended but the client stream did
   // not close, abort the stale stream so a new run can start.
   useEffect(() => {
-    if ((!serverTurnTerminal && !selectedLeadSettled) || !agentBusy) return;
+    if ((!trackedRunTerminal && !selectedLeadSettled) || !agentBusy) return;
     const id = window.setTimeout(() => stopAgent(), 3000);
     return () => window.clearTimeout(id);
-  }, [serverTurnTerminal, selectedLeadSettled, agentBusy, stopAgent]);
+  }, [trackedRunTerminal, selectedLeadSettled, agentBusy, stopAgent]);
 
   useEffect(() => {
-    if (!agentBusy && !runState?.activeRun) return;
+    if (!agentBusy && !runState?.activeRun && !clientRun) return;
     const id = window.setInterval(() => {
       void refreshLeads();
       void refreshActivity();
     }, 1500);
     return () => window.clearInterval(id);
-  }, [agentBusy, refreshActivity, refreshLeads, runState?.activeRun]);
+  }, [agentBusy, clientRun, refreshActivity, refreshLeads, runState?.activeRun]);
 
   const canRunActiveLead =
-    lead?.outcome === "open" && !selectedLeadSettled && !runState?.activeRun;
+    lead?.outcome === "open" &&
+    !selectedLeadSettled &&
+    !runState?.activeRun &&
+    !clientRun;
   const hasResettableState =
     agentBusy ||
     Boolean(runState?.activeRun) ||
+    Boolean(clientRun) ||
     activity.length > 0 ||
     leads.some(leadHasResettableState);
 
@@ -438,12 +500,24 @@ export function FactoryDashboard() {
         : latest;
     }, "");
     const runStartedAt = runState?.activeRun?.startedAt ?? "";
+    const clientStartedAt =
+      clientRunActiveForSelectedLead && clientRunStartedAt
+        ? clientRunStartedAt
+        : "";
     const boundary =
       runStartedAt && runStartedAt > lastStageWrite
         ? runStartedAt
-        : lastStageWrite;
+        : clientStartedAt && clientStartedAt > lastStageWrite
+          ? clientStartedAt
+          : lastStageWrite;
     return activity.filter((event) => event.timestamp > boundary);
-  }, [activity, lead, runState?.activeRun?.startedAt]);
+  }, [
+    activity,
+    clientRunActiveForSelectedLead,
+    clientRunStartedAt,
+    lead,
+    runState?.activeRun?.startedAt,
+  ]);
 
   async function runPipeline() {
     if (
@@ -458,10 +532,12 @@ export function FactoryDashboard() {
     runSubmittingRef.current = true;
     setRunSubmitting(true);
     setError(null);
+    setClientRun({ leadId: lead.id, startedAt: new Date().toISOString() });
     try {
       await agent.send({ message: buildRunMessage(lead, config) });
       await Promise.all([refreshLeads(), refreshActivity()]);
     } catch (err) {
+      setClientRun(null);
       setError(describeAgentError(err));
     } finally {
       runSubmittingRef.current = false;
@@ -478,6 +554,7 @@ export function FactoryDashboard() {
     }
     runSubmittingRef.current = false;
     setRunSubmitting(false);
+    setClientRun(null);
     agent.reset();
     try {
       const response = await fetch("/api/reset", { method: "POST" });
