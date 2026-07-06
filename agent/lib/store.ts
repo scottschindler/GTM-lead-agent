@@ -31,6 +31,9 @@ import {
 const CONFIG_KEY = "config";
 const ACTIVITY_KEY = "activity";
 const leadQueues = new Map<string, Promise<void>>();
+const seedLeadOrder = new Map(
+  SEED_LEAD_PROFILES.map((profile, index) => [profile.id, index]),
+);
 
 function leadKey(id: string): string {
   return `lead:${id}`;
@@ -38,6 +41,20 @@ function leadKey(id: string): string {
 
 function landingPageKey(slug: string): string {
   return `landing:${slug}`;
+}
+
+function compareLeadsForDisplay(a: Lead, b: Lead): number {
+  const aSeedIndex = seedLeadOrder.get(a.id);
+  const bSeedIndex = seedLeadOrder.get(b.id);
+
+  if (aSeedIndex !== undefined || bSeedIndex !== undefined) {
+    if (aSeedIndex !== undefined && bSeedIndex !== undefined) {
+      return aSeedIndex - bSeedIndex;
+    }
+    return aSeedIndex !== undefined ? -1 : 1;
+  }
+
+  return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
 }
 
 // Process-local write serialization for read-modify-write lead updates.
@@ -120,7 +137,7 @@ export async function listLeads(): Promise<Lead[]> {
       leads.push(lead);
     }
   }
-  const sorted = leads.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  const sorted = leads.sort(compareLeadsForDisplay);
   const hasAllSeeds = SEED_LEAD_PROFILES.every((profile) =>
     sorted.some((lead) => lead.id === profile.id),
   );
@@ -284,7 +301,7 @@ export async function ensureSeedLeads(): Promise<Lead[]> {
     const lead = buildFreshSeedLead(profile);
     leads.push(await saveLead(lead));
   }
-  return leads.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return leads.sort(compareLeadsForDisplay);
 }
 
 export async function getNextPendingLead(): Promise<Lead | null> {
@@ -622,7 +639,7 @@ export async function resetFactory(
   }
 
   await storage().clearLog(ACTIVITY_KEY);
-  return leads;
+  return leads.sort(compareLeadsForDisplay);
 }
 
 /**
