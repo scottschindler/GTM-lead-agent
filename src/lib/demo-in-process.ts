@@ -81,7 +81,7 @@ const NEON_EMAIL_BODY = `Hi Nikita,
 
 Neon made database branching feel native to how developers already work. The teams adopting it usually want the same thing on the frontend: an environment per change, no setup.
 
-Vercel pairs a preview deploy with every pull request — so a Neon branch and its frontend ship and get reviewed together, then disappear.
+Vercel pairs a preview deploy with every pull request - so a Neon branch and its frontend ship and get reviewed together, then disappear.
 
 Worth 15 minutes on how AI app teams run Neon + Vercel end-to-end?
 
@@ -100,7 +100,7 @@ const NEON_STAGES: Lead["stages"] = {
     output: {
       company: {
         name: "Neon",
-        industry: "Developer tools — serverless Postgres",
+        industry: "Developer tools - serverless Postgres",
         employeeCount: "100-150",
         funding: "Series B",
         techStack: ["Postgres", "Rust", "TypeScript", "Next.js"],
@@ -149,7 +149,7 @@ const NEON_STAGES: Lead["stages"] = {
       },
       verdict: "qualified",
       rationale:
-        "Developer-platform company with an executive contact and a workflow that pairs directly with Vercel previews. Usage intent is moderate — the signup came from docs, not pricing.",
+        "Developer-platform company with an executive contact and a workflow that pairs directly with Vercel previews. Usage intent is moderate - the signup came from docs, not pricing.",
     },
   },
   hypothesis: {
@@ -233,7 +233,7 @@ const NEON_STAGES: Lead["stages"] = {
         technicalDepth: "high",
         tone: "peer engineer, workflow-first",
         story:
-          "Neon made branching databases feel native. Pairing that with Vercel preview deploys means every pull request carries its full stack — data and frontend — reviewed together.",
+          "Neon made branching databases feel native. Pairing that with Vercel preview deploys means every pull request carries its full stack - data and frontend - reviewed together.",
         hooks: [
           "A database per branch deserves a frontend per branch.",
         ],
@@ -278,7 +278,7 @@ const RESEND_EMAIL_BODY = `Hi Zeno,
 
 Resend made sending email feel like writing React. The teams adopting it care about the same thing on the web side: rendering that's fast everywhere, with zero infrastructure fiddling.
 
-Vercel gives those teams edge rendering, preview deploys per PR, and framework-native defaults — the same DX bar Resend set for email.
+Vercel gives those teams edge rendering, preview deploys per PR, and framework-native defaults - the same DX bar Resend set for email.
 
 Worth a 15-minute look at how developer-tools companies run their web stack on Vercel?
 
@@ -297,7 +297,7 @@ const RESEND_STAGES: Lead["stages"] = {
     output: {
       company: {
         name: "Resend",
-        industry: "Developer tools — email API",
+        industry: "Developer tools - email API",
         employeeCount: "25-50",
         funding: "Series A",
         techStack: ["TypeScript", "React", "Next.js"],
@@ -428,7 +428,7 @@ const RESEND_STAGES: Lead["stages"] = {
         technicalDepth: "medium",
         tone: "founder-to-founder, concise",
         story:
-          "Zeno's team made email feel like React. Vercel makes the rest of their web stack feel the same way — edge rendering, previews per PR, zero platform overhead.",
+          "Zeno's team made email feel like React. Vercel makes the rest of their web stack feel the same way - edge rendering, previews per PR, zero platform overhead.",
         hooks: ["The DX bar you set for email, applied to your web stack."],
         cta: "Book 15 min",
         customerExamples: ["Developer-tools companies running docs and marketing on Vercel"],
@@ -438,7 +438,7 @@ const RESEND_STAGES: Lead["stages"] = {
       emailBody: RESEND_EMAIL_BODY,
       cta: "Book 15 min",
       objectionResponses: [
-        "If bandwidth is the concern, start with a single surface — docs or marketing — behind a preview workflow; no big-bang migration.",
+        "If bandwidth is the concern, start with a single surface - docs or marketing - behind a preview workflow; no big-bang migration.",
       ],
       send: {
         status: "approved",
@@ -469,7 +469,7 @@ const RAILWAY_UPDATED_AT = "2026-07-04T16:20:00.000Z";
 
 const RAILWAY_EMAIL_BODY = `Hi Jake,
 
-Railway nailed the deploy experience for backends and services. Most teams at your stage split the difference on the web side — and their marketing site, docs, and dashboard end up on slower iteration loops than the product itself.
+Railway nailed the deploy experience for backends and services. Most teams at your stage split the difference on the web side - and their marketing site, docs, and dashboard end up on slower iteration loops than the product itself.
 
 Vercel gives those surfaces preview deploys per PR, edge delivery, and framework defaults, so the web side ships at the same velocity as everything else.
 
@@ -490,7 +490,7 @@ const RAILWAY_STAGES: Lead["stages"] = {
     output: {
       company: {
         name: "Railway",
-        industry: "Developer tools — deployment platform",
+        industry: "Developer tools - deployment platform",
         employeeCount: "50-100",
         funding: "Series A",
         techStack: ["TypeScript", "React", "GraphQL", "Nixpacks"],
@@ -518,7 +518,7 @@ const RAILWAY_STAGES: Lead["stages"] = {
         "Grow web surfaces without pulling engineers off the core platform",
       ],
       summary:
-        "Railway is an infrastructure company whose own web surfaces — marketing, docs, dashboard — compete for the same engineers who build the core product.",
+        "Railway is an infrastructure company whose own web surfaces - marketing, docs, dashboard - compete for the same engineers who build the core product.",
       sources: ["https://railway.com"],
     },
   },
@@ -621,7 +621,7 @@ const RAILWAY_STAGES: Lead["stages"] = {
         technicalDepth: "medium",
         tone: "peer founder, direct",
         story:
-          "Railway made service deploys effortless. Vercel does the same for the web layer — so docs, marketing, and dashboard ship at product speed without borrowing platform engineers.",
+          "Railway made service deploys effortless. Vercel does the same for the web layer - so docs, marketing, and dashboard ship at product speed without borrowing platform engineers.",
         hooks: [
           "Your customers get instant deploys. Do your own web surfaces?",
         ],
@@ -633,7 +633,7 @@ const RAILWAY_STAGES: Lead["stages"] = {
       emailBody: RAILWAY_EMAIL_BODY,
       cta: "15-minute walkthrough",
       objectionResponses: [
-        "Dogfooding matters for services; the web layer is a different workload — position Vercel as complementary, not competitive.",
+        "Dogfooding matters for services; the web layer is a different workload - position Vercel as complementary, not competitive.",
       ],
       send: {
         status: "approved",
@@ -669,13 +669,13 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
     cadence: "day 0 / day 3 / day 7",
     timing: "weekday morning local time",
     waitingSummary:
-      "Email 1 sent Thu, Jul 2 — opened twice and Nikita is reading the framework docs, but no reply yet. The follow-up goes out Mon, Jul 6 unless he replies first.",
+      "Email 1 sent Thu, Jul 2 - opened twice and Nikita is reading the framework docs, but no reply yet. The follow-up goes out Mon, Jul 6 unless he replies first.",
     nextTouchLabel: "Next touch Mon, Jul 6",
     sequence: [
       {
         id: "neon-touch-1",
         day: 0,
-        label: "Email 1 — intro",
+        label: "Email 1 - intro",
         detail: "Opened with the Postgres + Vercel AI app production angle.",
         status: "sent",
         timing: "Sent Thu, Jul 2 · 9:30 AM PT",
@@ -683,7 +683,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
       {
         id: "neon-touch-2",
         day: 3,
-        label: "Email 2 — follow-up",
+        label: "Email 2 - follow-up",
         detail:
           "Shorter follow-up with a concrete branch-per-preview workflow example.",
         status: "next",
@@ -692,7 +692,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
       {
         id: "neon-touch-3",
         day: 7,
-        label: "Email 3 — final touch",
+        label: "Email 3 - final touch",
         detail: "Customer proof point, then close the loop and exit the sequence.",
         status: "scheduled",
         timing: "Scheduled Fri, Jul 10 · morning PT",
@@ -716,7 +716,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
           id: "neon-evt-1",
           kind: "outbound",
           label: "Email 1 sent",
-          detail: "Intro — Postgres + Vercel AI app production angle.",
+          detail: "Intro - Postgres + Vercel AI app production angle.",
           timing: "Thu, Jul 2 · 9:30 AM PT",
         },
         {
@@ -738,7 +738,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
           id: "neon-evt-4",
           kind: "docs",
           label: "Documentation viewed",
-          detail: "/docs/frameworks/nextjs — 4 pages, ~6 min.",
+          detail: "/docs/frameworks/nextjs - 4 pages, ~6 min.",
           timing: "Sat, Jul 4 · 10:52 AM PT",
           delta: 0.5,
         },
@@ -755,13 +755,13 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
     cadence: "day 0 / day 3 / day 8",
     timing: "weekday morning local time",
     waitingSummary:
-      "Two touches in and the account is heating up: pricing page visit Friday, then a teammate signed up for a Hobby account. No reply yet — but the agent recommends replacing the day-8 breakup email with a pricing nudge.",
+      "Two touches in and the account is heating up: pricing page visit Friday, then a teammate signed up for a Hobby account. No reply yet - but the agent recommends replacing the day-8 breakup email with a pricing nudge.",
     nextTouchLabel: "Next touch Tue, Jul 7",
     sequence: [
       {
         id: "resend-touch-1",
         day: 0,
-        label: "Email 1 — intro",
+        label: "Email 1 - intro",
         detail: "Opened with the transactional-email + edge rendering angle.",
         status: "sent",
         timing: "Sent Mon, Jun 29 · 9:15 AM PT",
@@ -769,7 +769,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
       {
         id: "resend-touch-2",
         day: 3,
-        label: "Email 2 — follow-up",
+        label: "Email 2 - follow-up",
         detail: "Followed up with the personalized landing page proof point.",
         status: "sent",
         timing: "Sent Thu, Jul 2 · 9:40 AM PT",
@@ -777,7 +777,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
       {
         id: "resend-touch-3",
         day: 8,
-        label: "Email 3 — final touch",
+        label: "Email 3 - final touch",
         detail:
           "Short breakup note with a customer example, then exit the sequence.",
         status: "next",
@@ -790,7 +790,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
       trend: "rising",
       deltaThisWeek: 2.4,
       recommendedNextAction:
-        "Skip the day-8 breakup email. Send a short pricing-question nudge today and offer a 15-minute call — pricing visit plus a product signup means the account is evaluating now.",
+        "Skip the day-8 breakup email. Send a short pricing-question nudge today and offer a 15-minute call - pricing visit plus a product signup means the account is evaluating now.",
       signalBreakdown: [
         { signal: "Product usage", weight: 1.2 },
         { signal: "Pricing interest", weight: 0.9 },
@@ -803,7 +803,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
           id: "resend-evt-1",
           kind: "outbound",
           label: "Email 1 sent",
-          detail: "Intro — transactional-email + edge rendering angle.",
+          detail: "Intro - transactional-email + edge rendering angle.",
           timing: "Mon, Jun 29 · 9:15 AM PT",
         },
         {
@@ -824,7 +824,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
           id: "resend-evt-4",
           kind: "website",
           label: "Landing page visited",
-          detail: "Personalized page — scrolled to the proof-point section.",
+          detail: "Personalized page - scrolled to the proof-point section.",
           timing: "Thu, Jul 2 · 2:48 PM PT",
           delta: 0.6,
         },
@@ -832,7 +832,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
           id: "resend-evt-5",
           kind: "pricing",
           label: "Pricing page visited",
-          detail: "/pricing — compared Pro and Enterprise, ~3 min.",
+          detail: "/pricing - compared Pro and Enterprise, ~3 min.",
           timing: "Fri, Jul 3 · 4:22 PM PT",
           delta: 0.9,
         },
@@ -857,13 +857,13 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
     cadence: "day 0 / day 4 / day 7",
     timing: "weekday morning local time",
     waitingSummary:
-      "Email 1 went out Friday morning after BDR approval. The wait window just opened — no signals yet. Follow-up is scheduled for Wed, Jul 8 unless Jake replies first.",
+      "Email 1 went out Friday morning after BDR approval. The wait window just opened - no signals yet. Follow-up is scheduled for Wed, Jul 8 unless Jake replies first.",
     nextTouchLabel: "Next touch Wed, Jul 8",
     sequence: [
       {
         id: "railway-touch-1",
         day: 0,
-        label: "Email 1 — intro",
+        label: "Email 1 - intro",
         detail:
           "Opened with the deploy-preview velocity angle for platform teams.",
         status: "sent",
@@ -872,7 +872,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
       {
         id: "railway-touch-2",
         day: 4,
-        label: "Email 2 — follow-up",
+        label: "Email 2 - follow-up",
         detail: "Follow up with a migration-free framework workflow example.",
         status: "next",
         timing: "Scheduled Wed, Jul 8 · morning PT",
@@ -880,7 +880,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
       {
         id: "railway-touch-3",
         day: 7,
-        label: "Email 3 — final touch",
+        label: "Email 3 - final touch",
         detail: "Final nudge with a customer proof point, then exit the sequence.",
         status: "scheduled",
         timing: "Scheduled Fri, Jul 11 · morning PT",
@@ -892,7 +892,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
       trend: "steady",
       deltaThisWeek: 0,
       recommendedNextAction:
-        "Hold — the wait window just opened. The score sits at the qualification baseline; re-score after the first open or 48 quiet hours.",
+        "Hold - the wait window just opened. The score sits at the qualification baseline; re-score after the first open or 48 quiet hours.",
       signalBreakdown: [
         { signal: "Email engagement", weight: 0 },
         { signal: "Replies", weight: 0 },
@@ -904,7 +904,7 @@ export const DEMO_IN_PROCESS_LEADS: DemoInProcessLead[] = [
           id: "railway-evt-1",
           kind: "outbound",
           label: "Email 1 sent",
-          detail: "Intro — deploy-preview velocity angle for platform teams.",
+          detail: "Intro - deploy-preview velocity angle for platform teams.",
           timing: "Fri, Jul 4 · 9:20 AM PT",
         },
       ],

@@ -5,7 +5,7 @@ import type {
 } from "../../agent/lib/types";
 
 // Demo data for the Dashboard "Complete" panel: leads whose pipeline finished
-// and whose outcome is known — a sale or a decline. Each entry carries the
+// and whose outcome is known - a sale or a decline. Each entry carries the
 // full Lead with every stage output in the exact shapes the pipeline
 // produces (rendered via the shared StageOutput views), plus the learning
 // agent's assessment in the exact LearningOutput shape.
@@ -44,6 +44,12 @@ export type DemoCompleteLead = {
 
 const WON_LEAD_ID = "lead_demo_complete_won";
 const WON_UPDATED_AT = "2026-07-01T20:00:00.000Z";
+const CURRENT_OUTCOME_DAY_LABEL = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  timeZone: "America/New_York",
+}).format(new Date());
 
 const WON_EMAIL_BODY = `Hi Karri,
 
@@ -69,7 +75,7 @@ const WON_LEAD: Lead = {
   currentStage: "learning",
   outcome: "bought",
   intentScore: 9.1,
-  recommendedNextAction: "Closed won — handed off to the account team.",
+  recommendedNextAction: "Closed won - handed off to the account team.",
   engagementEvents: [],
   stages: {
     intake: {
@@ -277,7 +283,7 @@ const WON_LEAD: Lead = {
           { signal: "CTA clicked", weight: 0.25 },
           { signal: "Meeting held", weight: 0.3 },
         ],
-        recommendedNextAction: "Hand off to the account team — deal closed.",
+        recommendedNextAction: "Hand off to the account team - deal closed.",
       },
     },
     learning: {
@@ -289,14 +295,14 @@ const WON_LEAD: Lead = {
 
 const WON_LEARNING: LearningOutput = {
   hypothesisAccuracy:
-    "Confirmed — the craft and invisible-infrastructure hypothesis matched the buyer's own words. Karri's reply cited preview friction during enterprise reviews, exactly the pain the hypothesis predicted.",
+    "Confirmed - the craft and invisible-infrastructure hypothesis matched the buyer's own words. Karri's reply cited preview friction during enterprise reviews, exactly the pain the hypothesis predicted.",
   whatWorked: [
     "Peer-level, product-minded tone earned a next-day reply from a design-led CEO",
     "Leading with craft preservation instead of cost or speed matched the account's values",
     "Preview-deploys-per-PR was the proof point that booked the meeting",
   ],
   whatToChange: [
-    "Compress the cadence for high-fit demo-request leads — the day-4 follow-up was never needed",
+    "Compress the cadence for high-fit demo-request leads - the day-4 follow-up was never needed",
     "Put the enterprise review-coordination angle in email 1 for accounts expanding upmarket",
   ],
   insights: [
@@ -333,7 +339,7 @@ const DECLINED_EMAIL_BODY = `Hi Ivan,
 
 Notion is shipping AI features at a pace most product teams can't match. The teams doing that well usually hit the same wall: rollout tooling that can't keep up with the ideas.
 
-Vercel gives product engineers preview deploys per change, edge rendering, and gradual rollout primitives — so AI surfaces ship weekly without risking the performance of the core app.
+Vercel gives product engineers preview deploys per change, edge rendering, and gradual rollout primitives - so AI surfaces ship weekly without risking the performance of the core app.
 
 Worth a 15-minute walkthrough of how AI product teams run this on Vercel?
 
@@ -354,7 +360,7 @@ const DECLINED_LEAD: Lead = {
   outcome: "nurture",
   intentScore: 2.1,
   recommendedNextAction:
-    "Closed as declined — nurture reminder set for next year's platform review.",
+    "Closed as declined - nurture reminder set for next year's platform review.",
   engagementEvents: [],
   stages: {
     intake: {
@@ -556,7 +562,7 @@ const DECLINED_LEAD: Lead = {
         confidence: 0.8,
         signalBreakdown: [
           { signal: "Email engagement", weight: 0.4 },
-          { signal: "Reply — explicit decline", weight: -2.0 },
+          { signal: "Reply - explicit decline", weight: -2.0 },
         ],
         recommendedNextAction:
           "Close as declined; set a nurture reminder for next year's platform review.",
@@ -571,9 +577,9 @@ const DECLINED_LEAD: Lead = {
 
 const DECLINED_LEARNING: LearningOutput = {
   hypothesisAccuracy:
-    "Partially wrong — the pain was real, but the platform decision had already been made internally two quarters earlier. We tested a hypothesis the buyer had already resolved.",
+    "Partially wrong - the pain was real, but the platform decision had already been made internally two quarters earlier. We tested a hypothesis the buyer had already resolved.",
   whatWorked: [
-    "Both emails were opened — subject lines and send windows performed",
+    "Both emails were opened - subject lines and send windows performed",
     "The decline was warm and explicitly left the door open for next year",
     "Right buyer: the CEO replied personally instead of ignoring the thread",
   ],
@@ -615,16 +621,16 @@ export const DEMO_COMPLETE_LEADS: DemoCompleteLead[] = [
     id: WON_LEAD_ID,
     result: "sale",
     resultHeadline:
-      "Closed won — Vercel Enterprise, platform migration scoped for Q3.",
+      "Closed won - Vercel Enterprise, platform migration scoped for Q3.",
     resultSummary:
-      "Replied within a day of email 1, demo call Fri, Jun 26, signed Wed, Jul 1. The craft-first hypothesis held up end to end.",
-    resultAtLabel: "Closed Wed, Jul 1",
+      `Replied within a day of email 1, demo call Fri, Jun 26, signed ${CURRENT_OUTCOME_DAY_LABEL}. The craft-first hypothesis held up end to end.`,
+    resultAtLabel: `Closed ${CURRENT_OUTCOME_DAY_LABEL}`,
     discoveredVia: "Reply to email 1, then a demo call on Fri, Jun 26",
     discoveredQuote:
-      "This is timely — we've been unhappy with our preview setup during enterprise reviews. Tuesday works.",
+      "This is timely - we've been unhappy with our preview setup during enterprise reviews. Tuesday works.",
     missedStages: [],
     pipelineVerdict:
-      "Every stage held up. Research, hypothesis, and messaging all pointed at the pain the buyer confirmed on the call — preview friction during enterprise reviews.",
+      "Every stage held up. Research, hypothesis, and messaging all pointed at the pain the buyer confirmed on the call - preview friction during enterprise reviews.",
     journey: [
       {
         id: "won-journey-1",
@@ -658,7 +664,7 @@ export const DEMO_COMPLETE_LEADS: DemoCompleteLead[] = [
         kind: "positive",
         label: "Closed won",
         detail: "Enterprise agreement signed; migration scoped for Q3.",
-        timing: "Wed, Jul 1 · 1:00 PM PT",
+        timing: `${CURRENT_OUTCOME_DAY_LABEL} · 1:00 PM PT`,
       },
     ],
     learning: WON_LEARNING,
@@ -668,16 +674,16 @@ export const DEMO_COMPLETE_LEADS: DemoCompleteLead[] = [
     id: DECLINED_LEAD_ID,
     result: "decline",
     resultHeadline:
-      "Declined — consolidated on an internal deploy platform earlier this year.",
+      "Declined - consolidated on an internal deploy platform earlier this year.",
     resultSummary:
       "Both emails opened, then a warm decline after email 2: they standardized on an internal platform earlier this year. A timing miss, not a fit miss.",
-    resultAtLabel: "Declined Thu, Jul 2",
-    discoveredVia: "Reply to email 2 on Thu, Jul 2",
+    resultAtLabel: `Declined ${CURRENT_OUTCOME_DAY_LABEL}`,
+    discoveredVia: `Reply to email 2 on ${CURRENT_OUTCOME_DAY_LABEL}`,
     discoveredQuote:
-      "Thanks — thoughtful note. We consolidated on our internal deploy platform earlier this year, so we're not evaluating right now. Check back next year.",
+      "Thanks - thoughtful note. We consolidated on our internal deploy platform earlier this year, so we're not evaluating right now. Check back next year.",
     missedStages: ["qualification", "hypothesis"],
     pipelineVerdict:
-      "Execution held up — research was accurate and both emails landed. The miss was upstream: qualification over-weighted timing on thin usage signals, and the hypothesis tested a platform decision the buyer had already made.",
+      "Execution held up - research was accurate and both emails landed. The miss was upstream: qualification over-weighted timing on thin usage signals, and the hypothesis tested a platform decision the buyer had already made.",
     journey: [
       {
         id: "declined-journey-1",
@@ -708,16 +714,16 @@ export const DEMO_COMPLETE_LEADS: DemoCompleteLead[] = [
       {
         id: "declined-journey-5",
         kind: "negative",
-        label: "Reply — declined",
+        label: "Reply - declined",
         detail: "Consolidated on an internal platform; invited a check-in next year.",
-        timing: "Thu, Jul 2 · 10:45 AM PT",
+        timing: `${CURRENT_OUTCOME_DAY_LABEL} · 10:45 AM PT`,
       },
       {
         id: "declined-journey-6",
         kind: "outbound",
         label: "Closed as declined",
         detail: "Nurture reminder set for next year's platform review.",
-        timing: "Thu, Jul 2 · 11:00 AM PT",
+        timing: `${CURRENT_OUTCOME_DAY_LABEL} · 11:00 AM PT`,
       },
     ],
     learning: DECLINED_LEARNING,

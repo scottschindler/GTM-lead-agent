@@ -1,0 +1,57 @@
+{
+  "id": "lead_29",
+  "name": "Michael Grinich",
+  "email": "michael@workos.com",
+  "company": "WorkOS",
+  "companyDomain": "workos.com",
+  "source": "enterprise-auth-webinar",
+  "timezone": "America/Los_Angeles",
+  "createdAt": "2026-07-06T18:48:55.000Z",
+  "updatedAt": "2026-07-06T18:48:55.001Z",
+  "currentStage": "intake",
+  "outcome": "open",
+  "stages": {
+    "intake": {
+      "status": "done",
+      "updatedAt": "2026-07-06T18:48:55.000Z",
+      "output": {
+        "leadId": "lead_29",
+        "source": "enterprise-auth-webinar"
+      }
+    },
+    "research": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T18:48:55.001Z"
+    },
+    "qualification": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T18:48:55.001Z"
+    },
+    "hypothesis": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T18:48:55.001Z"
+    },
+    "opportunity_mapping": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T18:48:55.001Z"
+    },
+    "content_generation": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T18:48:55.001Z"
+    },
+    "sequence_planning": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T18:48:55.001Z"
+    },
+    "engagement_intent": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T18:48:55.001Z"
+    },
+    "learning": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T18:48:55.001Z"
+    }
+  },
+  "engagementEvents": [],
+  "intentScore": 0
+}

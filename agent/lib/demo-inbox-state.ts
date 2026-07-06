@@ -26,11 +26,11 @@ type DemoFixture = {
 };
 
 /**
- * Seven leads for the interview demo opening state:
- * 3 drafted (waiting for BDR review) + 4 approved (already sent).
+ * Six leads for the interview demo opening state:
+ * 2 drafted (waiting for BDR review) + 4 approved (already sent).
  */
 const DEMO_FIXTURES: DemoFixture[] = [
-  // --- Pending review (3) ---
+  // --- Pending review (2) ---
   {
     profileId: "lead_seed",
     sendStatus: "drafted",
@@ -93,38 +93,6 @@ Scott`,
       "Multi-product engineering org with portal sprawl risk",
     ],
     sendOffsetHours: 4,
-  },
-  {
-    profileId: "lead_05",
-    sendStatus: "drafted",
-    overallPriority: 8.1,
-    messagingAngle:
-      "Replit's AI coding agents need a production deploy target that feels as instant as the IDE",
-    story:
-      "Amjad is pushing AI-assisted coding. The missing piece for many Replit users is a one-click path from prototype to production — Vercel is that path.",
-    subject: "From Replit prototype to production",
-    body: `Hi Amjad,
-
-Replit is making it trivial to prototype with AI. The next friction users hit is production: previews, edge, and deploys that feel as instant as the IDE.
-
-Vercel is the natural deploy target for that workflow — framework-native, zero-config, and built for the same audience.
-
-Curious if a Replit → Vercel path is something you've explored?
-
-Best,
-Scott`,
-    cta: "Explore the deploy path",
-    qualificationRationale:
-      "Product signup from a high-growth developer platform. Strong ICP fit; AI coding narrative is timely and differentiated.",
-    hypothesis:
-      "Replit users need a production deploy target that matches IDE velocity.",
-    evidence: [
-      "Product signup with engineering title",
-      "Public AI coding agent launches",
-      "Developer-platform ICP match",
-    ],
-    landingPageSlug: "for-amjad-replit",
-    sendOffsetHours: 6,
   },
   // --- Already approved / sent (4) ---
   {

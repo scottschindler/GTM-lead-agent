@@ -67,7 +67,12 @@ export function AppHeader({
     <header className="sticky top-0 z-10 border-b border-[var(--geist-border)] bg-[var(--geist-background)]/90 backdrop-blur">
       <div className="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4">
         <div>
-          <div className="text-sm font-medium">GTM Lead Factory</div>
+          <Link
+            href="/"
+            className="text-sm font-medium text-[var(--geist-foreground)] hover:opacity-80"
+          >
+            GTM Lead Factory
+          </Link>
           {subtitle ? (
             <div className="text-xs text-[var(--geist-muted)]">{subtitle}</div>
           ) : null}

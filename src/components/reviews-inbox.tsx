@@ -31,6 +31,7 @@ import {
   type DemoEngagement,
   type DemoInProcessLead,
   type DemoIntentTrend,
+  type DemoSequenceTouch,
   type DemoSequenceTouchStatus,
 } from "../lib/demo-in-process";
 import {
@@ -48,7 +49,7 @@ import {
   GRAFANA_QUALIFICATION,
   GRAFANA_RESEARCH,
 } from "../lib/demo-needs-review";
-import { STAGE_LABELS, STAGE_ORDER, STRIP_STAGE_LABELS } from "../lib/pipeline";
+import { STAGE_ORDER, STRIP_STAGE_LABELS } from "../lib/pipeline";
 import { withDemoLeads } from "../lib/review-queue";
 
 type ReviewAction = "approve" | "deny" | "edit";
@@ -88,12 +89,15 @@ type PipelineReviewCard = {
   approvalReason: string;
   completedActions: string[];
   nextRequiredAction: string;
-  recommendedDecision: string;
   pipelineSteps: ReviewPipelineStep[];
   evidence: string[];
   guardrails: string[];
   score?: number;
   item?: ReviewItem;
+};
+
+type SequenceDraftTouch = Omit<DemoSequenceTouch, "day"> & {
+  day: string;
 };
 
 type MetricTone = "warning" | "success" | "neutral";
@@ -159,13 +163,6 @@ function formatWhen(iso?: string, timezone?: string): string | undefined {
 
 function formatSource(source: string): string {
   return source.replace(/-/g, " ");
-}
-
-function formatCloseRate(closed: number, total: number): string {
-  if (total === 0) return "0%";
-  const rate = (closed / total) * 100;
-  if (rate > 0 && rate < 1) return "<1%";
-  return `${Math.round(rate)}%`;
 }
 
 function messagingAngle(item: ReviewItem): string | undefined {
@@ -500,7 +497,7 @@ function PipelineStrip({ steps }: { steps: ReviewPipelineStep[] }) {
                   type="button"
                   onClick={() => setOpenIndex(selected ? null : index)}
                   aria-expanded={selected}
-                  aria-label={`${step.label} — ${selected ? "hide" : "show"} output`}
+                  aria-label={`${step.label} - ${selected ? "hide" : "show"} output`}
                   title={step.label}
                   className={`${chipClassName} transition hover:opacity-80`}
                   style={chipStyle}
@@ -653,11 +650,15 @@ function EngagementSection({ engagement }: { engagement: DemoEngagement }) {
     <DetailSection
       title={
         <HoverHint
-          label="Engagement signals — demo snapshot"
+          label="Engagement agent"
           hintId="engagement-agent-hint"
         >
-          This panel shows seeded demo signals only. The live app does not run
-          an engagement-intent agent or update intent scores after outreach.
+          The engagement agent watches post-send behavior: opens, repeat
+          visits, docs activity, pricing interest, product activity, and
+          replies. It turns those signals into an intent score, explains what
+          moved the score, and tells the BDR when to wait, follow up, call, or
+          adjust the sequence. Warm accounts surface the moment they start
+          acting interested.
         </HoverHint>
       }
     >
@@ -704,9 +705,6 @@ function EngagementSection({ engagement }: { engagement: DemoEngagement }) {
             <span style={{ color: band.color }}>{band.label}</span>
             <span>
               {trend.arrow} {trend.label}
-            </span>
-            <span className="font-mono">
-              Confidence {Math.round(engagement.confidence * 100)}%
             </span>
           </div>
 
@@ -805,7 +803,7 @@ function EngagementSection({ engagement }: { engagement: DemoEngagement }) {
           </ol>
           {engagement.timeline.length <= 1 ? (
             <p className="mt-3 text-sm text-[var(--geist-muted)]">
-              No inbound signals yet — the agent re-scores as soon as one
+              No inbound signals yet - the agent re-scores as soon as one
               lands.
             </p>
           ) : null}
@@ -821,10 +819,65 @@ const SEQUENCE_TOUCH_BADGES: Record<DemoSequenceTouchStatus, string> = {
   scheduled: "Scheduled",
 };
 
-function SequenceTimeline({ lead }: { lead: DemoInProcessLead }) {
+function formatSequenceCadence(sequence: DemoSequenceTouch[]): string {
+  if (sequence.length === 0) return "no scheduled touches";
+  return sequence.map((touch) => `day ${touch.day}`).join(" / ");
+}
+
+function toSequenceDraft(sequence: DemoSequenceTouch[]): SequenceDraftTouch[] {
+  return sequence.map((touch) => ({ ...touch, day: String(touch.day) }));
+}
+
+function nextSequenceDay(draft: SequenceDraftTouch[]): number {
+  return (
+    draft.reduce((maxDay, touch) => {
+      const day = Number(touch.day);
+      return Number.isInteger(day) && day >= 0 ? Math.max(maxDay, day) : maxDay;
+    }, 0) + 1
+  );
+}
+
+function buildPhoneCallTouch(draft: SequenceDraftTouch[]): SequenceDraftTouch {
+  const day = nextSequenceDay(draft);
+  return {
+    id: `manual-phone-call-${Date.now()}-${draft.length}`,
+    day: String(day),
+    label: "Phone call",
+    detail: "BDR scheduled phone call to follow up on the active sequence.",
+    status: "scheduled",
+    timing: `Scheduled day ${day} · morning local time`,
+  };
+}
+
+function parseSequenceDraft(
+  draft: SequenceDraftTouch[],
+): { sequence: DemoSequenceTouch[]; error: null } | { sequence: null; error: string } {
+  const sequence: DemoSequenceTouch[] = [];
+
+  for (const touch of draft) {
+    const label = touch.label.trim();
+    const detail = touch.detail.trim();
+    const timing = touch.timing.trim();
+    const day = Number(touch.day);
+
+    if (!Number.isInteger(day) || day < 0) {
+      return { sequence: null, error: "Day must be a non-negative whole number." };
+    }
+
+    if (!label || !detail || !timing) {
+      return { sequence: null, error: "Label, detail, and timing are required." };
+    }
+
+    sequence.push({ ...touch, day, label, detail, timing });
+  }
+
+  return { sequence, error: null };
+}
+
+function SequenceTimeline({ sequence }: { sequence: DemoSequenceTouch[] }) {
   return (
     <ol className="space-y-3">
-      {lead.sequence.map((touch) => {
+      {sequence.map((touch) => {
         const style = PIPELINE_STEP_STYLE[SEQUENCE_TOUCH_STATE[touch.status]];
         return (
           <li key={touch.id} className="flex gap-3">
@@ -864,14 +917,262 @@ function SequenceTimeline({ lead }: { lead: DemoInProcessLead }) {
   );
 }
 
+function SequenceEditor({
+  sequence,
+  originalSequence,
+  hasOverride,
+  onSave,
+  onReset,
+}: {
+  sequence: DemoSequenceTouch[];
+  originalSequence: DemoSequenceTouch[];
+  hasOverride: boolean;
+  onSave: (sequence: DemoSequenceTouch[]) => void;
+  onReset: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState<SequenceDraftTouch[]>(() =>
+    toSequenceDraft(sequence),
+  );
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  const startEditing = () => {
+    setDraft(toSequenceDraft(sequence));
+    setValidationError(null);
+    setEditing(true);
+  };
+
+  const cancelEditing = () => {
+    setDraft(toSequenceDraft(sequence));
+    setValidationError(null);
+    setEditing(false);
+  };
+
+  const saveDraft = () => {
+    const parsed = parseSequenceDraft(draft);
+    if (parsed.sequence === null) {
+      setValidationError(parsed.error);
+      return;
+    }
+
+    onSave(parsed.sequence);
+    setValidationError(null);
+    setEditing(false);
+  };
+
+  const resetSequence = () => {
+    onReset();
+    setDraft(toSequenceDraft(originalSequence));
+    setValidationError(null);
+    setEditing(false);
+  };
+
+  const updateDraft = (
+    touchId: string,
+    field: keyof Pick<SequenceDraftTouch, "day" | "label" | "detail" | "timing">,
+    value: string,
+  ) => {
+    setDraft((current) =>
+      current.map((touch) =>
+        touch.id === touchId ? { ...touch, [field]: value } : touch,
+      ),
+    );
+  };
+
+  const addPhoneCall = () => {
+    setDraft((current) => [...current, buildPhoneCallTouch(current)]);
+    setValidationError(null);
+  };
+
+  return (
+    <div>
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {editing ? (
+          <>
+            <button
+              type="button"
+              onClick={saveDraft}
+              className="rounded-[8px] border border-[var(--geist-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--geist-subtle)]"
+            >
+              Save changes
+            </button>
+            <button
+              type="button"
+              onClick={cancelEditing}
+              className="rounded-[8px] border border-[var(--geist-border)] px-3 py-1.5 text-xs text-[var(--geist-muted)] hover:text-[var(--geist-foreground)]"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={resetSequence}
+              className="rounded-[8px] border border-[var(--geist-border)] px-3 py-1.5 text-xs text-[var(--geist-muted)] hover:text-[var(--geist-foreground)]"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={addPhoneCall}
+              className="rounded-[8px] border border-[var(--geist-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--geist-subtle)]"
+            >
+              Add phone call
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={startEditing}
+              className="rounded-[8px] border border-[var(--geist-border)] px-3 py-1.5 text-xs font-medium hover:bg-[var(--geist-subtle)]"
+            >
+              Edit sequence
+            </button>
+            {hasOverride ? (
+              <button
+                type="button"
+                onClick={resetSequence}
+                className="rounded-[8px] border border-[var(--geist-border)] px-3 py-1.5 text-xs text-[var(--geist-muted)] hover:text-[var(--geist-foreground)]"
+              >
+                Reset
+              </button>
+            ) : null}
+          </>
+        )}
+      </div>
+
+      {validationError ? (
+        <p className="mb-3 rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-error-soft)] px-3 py-2 text-sm">
+          {validationError}
+        </p>
+      ) : null}
+
+      {editing ? (
+        <ol className="space-y-3">
+          {draft.map((touch) => {
+            const readOnly = touch.status === "sent";
+            const style = PIPELINE_STEP_STYLE[SEQUENCE_TOUCH_STATE[touch.status]];
+            return (
+              <li key={touch.id} className="flex gap-3">
+                <span
+                  aria-hidden="true"
+                  className="mt-1 inline-block h-2.5 w-2.5 shrink-0 rounded-full border"
+                  style={{
+                    background: style.background,
+                    borderColor: style.border,
+                  }}
+                />
+                <div className="min-w-0 flex-1 rounded-[8px] border border-[var(--geist-border)] p-3">
+                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                    <span
+                      className="rounded-full border px-2 py-0.5 text-[11px] font-medium"
+                      style={{
+                        color: style.color,
+                        background: style.background,
+                        borderColor: style.border,
+                      }}
+                    >
+                      {SEQUENCE_TOUCH_BADGES[touch.status]}
+                    </span>
+                    {readOnly ? (
+                      <span className="text-xs text-[var(--geist-muted)]">
+                        Historical touch
+                      </span>
+                    ) : null}
+                  </div>
+
+                  {readOnly ? (
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-sm font-medium">{touch.label}</span>
+                        <span className="font-mono text-[11px] text-[var(--geist-muted)]">
+                          day {touch.day}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-sm text-[var(--geist-muted)]">
+                        {touch.detail}
+                      </p>
+                      <p className="mt-0.5 font-mono text-[11px] text-[var(--geist-muted)]">
+                        {touch.timing}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 sm:grid-cols-[96px_1fr]">
+                      <label className="grid gap-1 text-[11px] font-medium uppercase tracking-wide text-[var(--geist-muted)]">
+                        Day
+                        <input
+                          type="number"
+                          min={0}
+                          step={1}
+                          value={touch.day}
+                          onChange={(event) =>
+                            updateDraft(touch.id, "day", event.target.value)
+                          }
+                          className="h-9 rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-background)] px-2 font-mono text-sm text-[var(--geist-foreground)] outline-none focus:border-[var(--geist-foreground)]"
+                        />
+                      </label>
+                      <label className="grid gap-1 text-[11px] font-medium uppercase tracking-wide text-[var(--geist-muted)]">
+                        Label
+                        <input
+                          type="text"
+                          value={touch.label}
+                          onChange={(event) =>
+                            updateDraft(touch.id, "label", event.target.value)
+                          }
+                          className="h-9 rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-background)] px-2 text-sm text-[var(--geist-foreground)] outline-none focus:border-[var(--geist-foreground)]"
+                        />
+                      </label>
+                      <label className="grid gap-1 text-[11px] font-medium uppercase tracking-wide text-[var(--geist-muted)] sm:col-span-2">
+                        Detail
+                        <textarea
+                          value={touch.detail}
+                          onChange={(event) =>
+                            updateDraft(touch.id, "detail", event.target.value)
+                          }
+                          rows={2}
+                          className="min-h-16 rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-background)] px-2 py-2 text-sm text-[var(--geist-foreground)] outline-none focus:border-[var(--geist-foreground)]"
+                        />
+                      </label>
+                      <label className="grid gap-1 text-[11px] font-medium uppercase tracking-wide text-[var(--geist-muted)] sm:col-span-2">
+                        Timing
+                        <input
+                          type="text"
+                          value={touch.timing}
+                          onChange={(event) =>
+                            updateDraft(touch.id, "timing", event.target.value)
+                          }
+                          className="h-9 rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-background)] px-2 font-mono text-sm text-[var(--geist-foreground)] outline-none focus:border-[var(--geist-foreground)]"
+                        />
+                      </label>
+                    </div>
+                  )}
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      ) : (
+        <SequenceTimeline sequence={sequence} />
+      )}
+    </div>
+  );
+}
+
 function InProcessCard({
   lead,
+  sequence,
+  hasSequenceOverride,
   expanded,
   onToggle,
+  onSaveSequence,
+  onResetSequence,
 }: {
   lead: DemoInProcessLead;
+  sequence: DemoSequenceTouch[];
+  hasSequenceOverride: boolean;
   expanded: boolean;
   onToggle: () => void;
+  onSaveSequence: (sequence: DemoSequenceTouch[]) => void;
+  onResetSequence: () => void;
 }) {
   // Every stage completed; each chip carries the stage's saved output so the
   // strip doubles as the stage-by-stage record. "Send approved" opens just
@@ -911,9 +1212,6 @@ function InProcessCard({
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <IntentPill engagement={lead.engagement} />
-            <span className="rounded-full border border-[var(--geist-border)] px-2 py-0.5 text-[11px] text-[var(--geist-muted)]">
-              Waiting on reply
-            </span>
           </div>
           <p className="text-sm text-[var(--geist-muted)]">
             {lead.waitingSummary}
@@ -932,12 +1230,7 @@ function InProcessCard({
       {expanded ? (
         <div className="space-y-4 border-t border-[var(--geist-border)] px-4 py-4">
           <div>
-            <h3 className="mb-2 text-sm font-medium">
-              Pipeline{" "}
-              <span className="font-normal text-[var(--geist-muted)]">
-                — every stage complete
-              </span>
-            </h3>
+            <h3 className="mb-2 text-sm font-medium">Pipeline</h3>
             <PipelineStrip steps={pipelineSteps} />
           </div>
 
@@ -946,11 +1239,20 @@ function InProcessCard({
           <DetailSection title="What happens next">
             <p className="mb-3 text-sm leading-relaxed">
               Outreach sequence{" "}
-              <span className="font-mono text-xs">{lead.cadence}</span>,{" "}
+              <span className="font-mono text-xs">
+                {formatSequenceCadence(sequence)}
+              </span>
+              ,{" "}
               {lead.timing}. The agent holds each touch until its send window
               and exits the sequence the moment a reply lands.
             </p>
-            <SequenceTimeline lead={lead} />
+            <SequenceEditor
+              sequence={sequence}
+              originalSequence={lead.sequence}
+              hasOverride={hasSequenceOverride}
+              onSave={onSaveSequence}
+              onReset={onResetSequence}
+            />
             <p className="mt-4 border-t border-[var(--geist-border)] pt-3 text-xs text-[var(--geist-muted)]">
               Sequence exits when: {lead.exitConditions.join(" · ")}
             </p>
@@ -973,23 +1275,6 @@ function DetailSection({
       <h3 className="text-sm font-medium">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
-  );
-}
-
-function Checklist({ items }: { items: string[] }) {
-  return (
-    <ul className="space-y-2 text-sm">
-      {items.map((item) => (
-        <li key={item} className="flex gap-2">
-          <span
-            aria-hidden="true"
-            className="mt-1 inline-block h-2 w-2 shrink-0 rounded-full"
-            style={{ background: "var(--geist-complete, #3fb950)" }}
-          />
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
 
@@ -1034,7 +1319,6 @@ function buildNeedsReviewCards(sendItem: ReviewItem): PipelineReviewCard[] {
       ],
       nextRequiredAction:
         "Confirm whether this account is worth pursuing before opportunity mapping starts.",
-      recommendedDecision: "Approve pursuit and let the agent continue.",
       pipelineSteps: QUALIFICATION_PIPELINE,
       evidence: [
         "Product signup came from a developer-platform company.",
@@ -1063,8 +1347,6 @@ function buildNeedsReviewCards(sendItem: ReviewItem): PipelineReviewCard[] {
       ],
       nextRequiredAction:
         "Approve the messaging angle, or request a rewrite before sequence planning and draft generation.",
-      recommendedDecision:
-        "Approve the angle; it is concise and tied to real developer-experience pain.",
       pipelineSteps: MESSAGING_PIPELINE,
       evidence: [
         "Demo request submitted this week.",
@@ -1107,7 +1389,6 @@ function buildNeedsReviewCards(sendItem: ReviewItem): PipelineReviewCard[] {
       ],
       nextRequiredAction:
         "Approve, edit, or deny the outbound email before the send can be released.",
-      recommendedDecision: "Review the copy, then approve if it matches your voice.",
       pipelineSteps: buildSendPipeline(sendItem),
       evidence:
         sendItem.hypothesis?.hypotheses?.[0]?.evidence ??
@@ -1132,15 +1413,15 @@ function demoActionLabels(kind: ReviewCardKind): {
 } {
   if (kind === "qualification") {
     return {
-      primary: "Approve pursuit",
+      primary: "Approve",
       secondary: "Mark not worth pursuing",
       primaryDone: "we will continue the pipeline",
       secondaryDone: "Marked not worth pursuing",
     };
   }
   return {
-    primary: "Approve angle",
-    secondary: "Request rewrite",
+    primary: "Approve",
+    secondary: "Rewrite",
     primaryDone: "we will continue the pipeline",
     secondaryDone: "Rewrite requested",
   };
@@ -1231,10 +1512,7 @@ function PipelineReviewCard({
         <div className="space-y-4 border-t border-[var(--geist-border)] px-4 py-4">
           <PipelineStrip steps={card.pipelineSteps} />
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <DetailSection title="What the agent did">
-              <Checklist items={card.completedActions} />
-            </DetailSection>
+          <div className="grid gap-3">
             <DetailSection title="Why this needs approval">
               <p className="mb-3 text-sm leading-relaxed">
                 {card.approvalReason}
@@ -1305,11 +1583,8 @@ function PipelineReviewCard({
           <div className="border-t border-[var(--geist-border)] pt-4">
             <div className="mb-3">
               <h3 className="text-sm font-medium">
-                What the salesperson needs to do
+                What you need to do
               </h3>
-              <p className="mt-1 text-sm text-[var(--geist-muted)]">
-                {card.recommendedDecision}
-              </p>
             </div>
             {card.kind === "send" && send ? (
               <div className="flex flex-wrap items-center gap-2">
@@ -1551,7 +1826,7 @@ function CompleteCard({
             <h3 className="mb-2 text-sm font-medium">
               Pipeline{" "}
               <span className="font-normal text-[var(--geist-muted)]">
-                — where it succeeded and where it missed
+                - where it succeeded and where it missed
               </span>
             </h3>
             <PipelineStrip steps={pipelineSteps} />
@@ -1598,41 +1873,18 @@ function CompleteCard({
           <DetailSection
             title={
               <HoverHint
-                label="Learning agent — full assessment"
+                label="Learning agent"
                 hintId={`learning-agent-hint-${item.id}`}
               >
-                This is seeded demo assessment data only. The live app does not
-                run a learning agent or write new learning-stage output.
+                The Learning Agent compares the final outcome with the earlier
+                research, qualification, hypothesis, and messaging. It turns
+                wins and declines into reusable coaching, then feeds those
+                learnings back into our sales intelligence and LLM context so
+                future runs get smarter.
               </HoverHint>
             }
           >
             <StageOutput stage="learning" output={item.learning} />
-          </DetailSection>
-
-          <DetailSection title="Stage-by-stage record">
-            <p className="mb-3 text-sm text-[var(--geist-muted)]">
-              What each pipeline stage produced for this lead — the exact
-              output the agent saved as it ran.
-            </p>
-            <div className="space-y-2">
-              {STAGE_ORDER.map((stage) => {
-                const record = item.lead.stages[stage];
-                if (!record?.output) return null;
-                return (
-                  <details
-                    key={stage}
-                    className="rounded-[8px] border border-[var(--geist-border)] px-3 py-2"
-                  >
-                    <summary className="cursor-pointer text-sm font-medium">
-                      {STAGE_LABELS[stage]}
-                    </summary>
-                    <div className="mt-3 border-t border-[var(--geist-border)] pt-3">
-                      <StageOutput stage={stage} output={record.output} />
-                    </div>
-                  </details>
-                );
-              })}
-            </div>
           </DetailSection>
         </div>
       ) : null}
@@ -1650,6 +1902,9 @@ export function ReviewsInbox() {
   const [demoDecisions, setDemoDecisions] = useState<Record<string, string>>(
     {},
   );
+  const [sequenceOverrides, setSequenceOverrides] = useState<
+    Record<string, DemoSequenceTouch[]>
+  >({});
 
   const refresh = useCallback(async () => {
     const response = await fetch("/api/leads", { cache: "no-store" });
@@ -1762,7 +2017,7 @@ export function ReviewsInbox() {
   );
 
   // Demo data for now: leads whose full pipeline already ran and whose send
-  // was approved — the agent is working the outreach sequence, waiting on a
+  // was approved - the agent is working the outreach sequence, waiting on a
   // reply.
   const inProcessLeads = DEMO_IN_PROCESS_LEADS;
   // Demo data for now: leads with a known end result (sale or decline) and
@@ -1772,10 +2027,6 @@ export function ReviewsInbox() {
   const wonCount = completeLeads.filter(
     (item) => item.result === "sale",
   ).length;
-  const sentCount = inProcessLeads.length + completeLeads.length;
-  const handledCount =
-    needsReviewCards.length + inProcessLeads.length + completeLeads.length;
-  const closeRate = formatCloseRate(wonCount, handledCount);
 
   const activeExpandedId = expandedId;
 
@@ -1795,10 +2046,24 @@ export function ReviewsInbox() {
     [],
   );
 
+  const saveSequenceOverride = useCallback(
+    (leadId: string, sequence: DemoSequenceTouch[]) => {
+      setSequenceOverrides((current) => ({ ...current, [leadId]: sequence }));
+    },
+    [],
+  );
+
+  const resetSequenceOverride = useCallback((leadId: string) => {
+    setSequenceOverrides((current) => {
+      const next = { ...current };
+      delete next[leadId];
+      return next;
+    });
+  }, []);
+
   return (
     <div className="min-h-screen bg-[var(--geist-background)] text-[var(--geist-foreground)]">
       <AppHeader
-        subtitle="Dashboard"
         dashboardNotificationCount={loading ? null : needsReviewCards.length}
       />
 
@@ -1815,13 +2080,6 @@ export function ReviewsInbox() {
               <h1 className="text-2xl font-semibold sm:text-3xl">
                 Dashboard
               </h1>
-              {!loading && handledCount > 0 ? (
-                <p className="mt-2 text-sm text-[var(--geist-muted)]">
-                  Agent prepped {handledCount} lead
-                  {handledCount === 1 ? "" : "s"} · {sentCount} sent ·{" "}
-                  {closeRate} close rate
-                </p>
-              ) : null}
             </div>
             <DateRangeControl />
           </div>
@@ -1833,7 +2091,7 @@ export function ReviewsInbox() {
               detail={
                 loading
                   ? "Loading review queue."
-                  : `${needsReviewCards.length} human checkpoints need a BDR decision.`
+                  : ""
               }
               tone="warning"
               selected={selectedPanel === "needs_review"}
@@ -1845,9 +2103,7 @@ export function ReviewsInbox() {
               detail={
                 loading
                   ? "Loading active sequences."
-                  : `${inProcessLeads.length} sequence${
-                      inProcessLeads.length === 1 ? "" : "s"
-                    } live — waiting to hear back.`
+                  : ""
               }
               tone="neutral"
               selected={selectedPanel === "in_process"}
@@ -1909,11 +2165,6 @@ export function ReviewsInbox() {
           <section className="grid gap-3">
             <div>
               <h2 className="text-sm font-medium">In process</h2>
-              <p className="mt-1 text-sm text-[var(--geist-muted)]">
-                The pipeline ran end to end and the send was approved. This
-                panel uses seeded demo signal data only; the live app does not
-                run an engagement-intent agent.
-              </p>
             </div>
             {inProcessLeads.length === 0 ? (
               <div className="rounded-[8px] border border-[var(--geist-border)] px-4 py-8 text-center">
@@ -1924,14 +2175,23 @@ export function ReviewsInbox() {
                 </p>
               </div>
             ) : (
-              inProcessLeads.map((lead) => (
-                <InProcessCard
-                  key={lead.id}
-                  lead={lead}
-                  expanded={activeExpandedId === lead.id}
-                  onToggle={() => toggleExpanded(lead.id)}
-                />
-              ))
+              inProcessLeads.map((lead) => {
+                const sequence = sequenceOverrides[lead.id] ?? lead.sequence;
+                return (
+                  <InProcessCard
+                    key={lead.id}
+                    lead={lead}
+                    sequence={sequence}
+                    hasSequenceOverride={sequenceOverrides[lead.id] !== undefined}
+                    expanded={activeExpandedId === lead.id}
+                    onToggle={() => toggleExpanded(lead.id)}
+                    onSaveSequence={(nextSequence) =>
+                      saveSequenceOverride(lead.id, nextSequence)
+                    }
+                    onResetSequence={() => resetSequenceOverride(lead.id)}
+                  />
+                );
+              })
             )}
           </section>
         ) : null}
@@ -1940,11 +2200,6 @@ export function ReviewsInbox() {
           <section className="grid gap-3">
             <div>
               <h2 className="text-sm font-medium">Complete</h2>
-              <p className="mt-1 text-sm text-[var(--geist-muted)]">
-                Leads with a known end result — a sale or a decline. This panel
-                uses seeded demo summaries only; the live app does not run a
-                learning agent.
-              </p>
             </div>
             {completeLeads.length === 0 ? (
               <div className="rounded-[8px] border border-[var(--geist-border)] px-4 py-8 text-center">

@@ -277,13 +277,6 @@ function ResearchView({ data }: { data: ResearchData }) {
           <Bullets items={data.priorities ?? []} />
         </Section>
       ) : null}
-      {data.vercelAngle ? (
-        <Section label="Why Vercel fits">
-          <p className="rounded-[8px] border-l-2 border-[var(--geist-success)] bg-[var(--geist-subtle)] px-3 py-2 text-sm">
-            {data.vercelAngle}
-          </p>
-        </Section>
-      ) : null}
       {allSources.length > 0 ? (
         <Section label="Sources">
           <SourceLinks urls={Array.from(new Set(allSources))} />
@@ -425,11 +418,6 @@ export function MessagingStrategyView({ data }: { data: MessagingStrategyData })
   return (
     <div className="space-y-4">
       {data.messagingAngle ? <p className="text-sm">{data.messagingAngle}</p> : null}
-      <div className="flex flex-wrap gap-1.5">
-        {data.technicalDepth ? (
-          <Badge>Technical depth: {data.technicalDepth}</Badge>
-        ) : null}
-      </div>
       <Fact label="Tone" value={data.tone} />
       {data.story ? (
         <Section label="Story">
@@ -635,11 +623,6 @@ function ContentView({
           <span className="text-[var(--geist-muted)]">CTA:</span>{" "}
           <span className="font-medium">{data.cta}</span>
         </div>
-      ) : null}
-      {(data.objectionResponses ?? []).length > 0 ? (
-        <Section label="If they push back">
-          <Bullets items={data.objectionResponses ?? []} />
-        </Section>
       ) : null}
       {send ? (
         <div className="rounded-[8px] border border-[var(--geist-border)] p-3">

@@ -11,11 +11,11 @@ import type {
 // them through the shared StageOutput views.
 //
 // These personas must NOT overlap with the seed roster in
-// agent/lib/seed-leads.ts (or the other demo fixtures) — a colliding name
+// agent/lib/seed-leads.ts (or the other demo fixtures) - a colliding name
 // makes the static card contradict that lead's real pipeline state after a
 // live run.
 
-// --- Cursor / Michael Truell — paused at qualification review ---------------
+// --- Cursor / Michael Truell - paused at qualification review ---------------
 
 export const CURSOR_INTAKE = {
   leadId: "demo-qualification-review",
@@ -25,7 +25,7 @@ export const CURSOR_INTAKE = {
 export const CURSOR_RESEARCH: ResearchBrief = {
   company: {
     name: "Cursor",
-    industry: "Developer tools — AI coding platform",
+    industry: "Developer tools - AI coding platform",
     employeeCount: "150-250",
     funding: "Series B",
     techStack: ["TypeScript", "React", "Rust", "Electron"],
@@ -75,7 +75,7 @@ export const CURSOR_QUALIFICATION: QualificationOutput = {
     "Strong ICP fit and an executive contact who signed up through the product. High engineering maturity and buying authority; awaiting human confirmation before further agent work on a strategic account.",
 };
 
-// --- Grafana Labs / Raj Dutt — paused at messaging review -------------------
+// --- Grafana Labs / Raj Dutt - paused at messaging review -------------------
 
 export const GRAFANA_INTAKE = {
   leadId: "demo-messaging-review",
@@ -85,7 +85,7 @@ export const GRAFANA_INTAKE = {
 export const GRAFANA_RESEARCH: ResearchBrief = {
   company: {
     name: "Grafana Labs",
-    industry: "Observability — open-source monitoring",
+    industry: "Observability - open-source monitoring",
     employeeCount: "800-1,200",
     funding: "Series D",
     techStack: ["Go", "TypeScript", "React", "Kubernetes"],
@@ -157,7 +157,7 @@ export const GRAFANA_MESSAGING: MessagingStrategyOutput = {
   technicalDepth: "high",
   tone: "peer engineer, infrastructure-literate",
   story:
-    "Raj's org runs many products and the internal tooling to match. Vercel collapses portal and internal-tool delivery into one workflow — previews per change, edge delivery, no bespoke platform work.",
+    "Raj's org runs many products and the internal tooling to match. Vercel collapses portal and internal-tool delivery into one workflow - previews per change, edge delivery, no bespoke platform work.",
   hooks: [
     "You tamed observability sprawl. What about your portal sprawl?",
   ],

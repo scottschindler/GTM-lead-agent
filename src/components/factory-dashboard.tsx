@@ -388,21 +388,6 @@ function StageCard({
       ) : null}
       {open && !running ? (
         <div className="border-t border-[var(--geist-border)] px-4 py-3">
-          {log.length > 0 ? (
-            <div className="mb-3 space-y-2">
-              <div className="text-[11px] uppercase tracking-wide text-[var(--geist-muted)]">
-                progress
-              </div>
-              {log.map((event) => (
-                <div key={event.id} className="text-sm">
-                  <span className="text-[11px] text-[var(--geist-muted)]">
-                    {new Date(event.timestamp).toLocaleTimeString()}
-                  </span>{" "}
-                  {humanizeActivitySummary(event)}
-                </div>
-              ))}
-            </div>
-          ) : null}
           {record.note ? (
             <p className="mb-2 text-sm text-[var(--geist-muted)]">{record.note}</p>
           ) : null}
@@ -934,7 +919,7 @@ export function FactoryDashboard() {
 
   return (
     <div className="min-h-screen bg-[var(--geist-background)] text-[var(--geist-foreground)]">
-      <AppHeader subtitle="Pipeline" />
+      <AppHeader />
 
       <main className="mx-auto grid max-w-4xl gap-8 px-4 py-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The lead_24 (Langfuse) production run took 102.3s, not 2 minutes (the log
+A previous production run took 102.3s, not 2 minutes (the log
 header rounds up). Quality was good: rich research brief, correct qualified
 verdict, landing page + draft queued, honest sequential stage reveal. The
 runtime budget breaks down as:
@@ -62,7 +62,7 @@ flag — under ~120 words, no restating writer protocol.
 
 #### Task 2: Cap recommendedNextAction length in the writer
 
-**Description:** lead_24's recommendedNextAction was ~90 words and gets
+**Description:** That run's recommendedNextAction was ~90 words and gets
 generated once by the writer, re-emitted by the foreman into
 set_lead_outcome, and rendered in two UI spots. Cap it at ~30 words in
 `pipeline_writer/instructions.md` (one action + one condition).
@@ -104,7 +104,7 @@ end with a single short sentence after set_lead_outcome.
 - [ ] `npx tsc --noEmit`, `npx eslint agent`, `npm run eval` all clean.
 - [ ] One full live local run; record wall-clock from Run click to settled.
 - [ ] Push + deploy; one production run on a fresh lead; compare turn
-      duration and output tokens against lead_24 (102.3s / 1,566 output).
+      duration and output tokens against the previous baseline (102.3s / 1,566 output).
 - [ ] Human review: is ~90s reached? If yes, STOP — do not start Phase 2.
 
 ### Phase 2 (optional, only if Phase 1 falls short): parent inference cost

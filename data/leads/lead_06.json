@@ -7,9 +7,9 @@
   "source": "newsletter",
   "timezone": "America/Los_Angeles",
   "createdAt": "2026-07-06T12:46:53.829Z",
-  "updatedAt": "2026-07-06T12:46:53.830Z",
-  "currentStage": "intake",
-  "outcome": "open",
+  "updatedAt": "2026-07-06T19:47:16.802Z",
+  "currentStage": "sequence_planning",
+  "outcome": "nurture",
   "stages": {
     "intake": {
       "status": "done",
@@ -20,28 +20,202 @@
       }
     },
     "research": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.830Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T19:46:31.744Z",
+      "output": {
+        "company": {
+          "name": "Linear",
+          "industry": "Developer Tools / Project Management",
+          "funding": "Series B $35M (2023), Series C $82M (June 2025 at $1.25B valuation)",
+          "techStack": [
+            "Local-first architecture (client-side data sync)",
+            "React/Next.js frontend",
+            "Webhook API, Zapier, GitHub integrations"
+          ],
+          "recentNews": [
+            "Series C $82M at $1.25B (June 2025)",
+            "Launched AI agents and agent-coordination messaging"
+          ],
+          "growthSignals": [
+            "Customers: OpenAI, Ramp, Vercel, Coinbase",
+            "Weekly changelog; consistent product velocity",
+            "CEO thought leadership on product design and AI"
+          ],
+          "sources": []
+        },
+        "person": {
+          "name": "Karri Saarinen",
+          "title": "Co-founder, CEO",
+          "seniority": "Founder-CEO",
+          "technicalBackground": "Principal Designer at Airbnb (design systems co-creator), Founding Designer at Coinbase, Co-founder of Kippt",
+          "sources": []
+        },
+        "initiatives": [],
+        "productLaunches": [],
+        "aiInitiatives": [],
+        "hiringTrends": [],
+        "architectureNotes": [],
+        "competitors": [],
+        "priorities": [],
+        "vercelAngle": "Linear serves Vercel's customer base (Vercel is a known Linear customer) and represents the next-gen developer tool category aligned with Vercel's platform vision for high-growth SaaS and AI-native startups",
+        "summary": "Linear is a $1.25B-valued issue tracking and project management platform founded in 2019, used by 33,000 companies including OpenAI, Ramp, and Vercel, with a focus on speed and craft through local-first architecture. CEO Karri Saarinen (ex-Airbnb principal designer) is positioning Linear as the coordination platform for AI-agent-native software teams with expanded roadmapping, workflow automation, and human-agent interaction design",
+        "sources": [
+          "https://linear.app/about",
+          "https://review.firstround.com/podcast/inside-linear-why-craft-and-focus-still-win-in-product-building/",
+          "https://linear.app/now/press"
+        ]
+      }
     },
     "qualification": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.830Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T19:46:42.812Z",
+      "output": {
+        "scores": {
+          "icpFit": 9,
+          "buyingAuthority": 10,
+          "productUsageOrIntent": 9,
+          "engineeringMaturity": 10,
+          "companyGrowth": 9,
+          "businessImpact": 9,
+          "overallPriority": 9
+        },
+        "verdict": "qualified",
+        "rationale": "Linear is a $1.25B-valued platform with 33,000 customers (including Vercel, OpenAI, Ramp), led by ex-Airbnb principal designer Karri Saarinen. Strong engineering credibility: local-first architecture, React/Next.js stack, API/webhook integrations. Strategic AI-agent positioning creates direct alignment with Vercel's developer-first infrastructure. CEO is decision-maker and innovation-focused. High growth trajectory and proven market fit make this a tier-1 opportunity."
+      }
     },
     "hypothesis": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.830Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T19:46:49.322Z",
+      "output": {
+        "hypotheses": [
+          {
+            "statement": "Linear's AI-agent coordination roadmap is constrained by deployment velocity and observability gaps in their own product infrastructure, preventing rapid iteration on agent-native workflows.",
+            "confidence": 0.85,
+            "evidence": [
+              "CEO explicitly positioning Linear as AI-agent-native coordination platform (strategic signal)",
+              "Local-first architecture requires robust observability to debug distributed sync at scale",
+              "Webhook/API integrations suggest heavy reliance on third-party systems; no native observability story published",
+              "33K customers × agent workflow adoption = exponential logging/tracing demand"
+            ],
+            "engineeringPain": "Debugging local-first sync failures and agent integration failures requires deep distributed traces; current webhook-based approach offers no unified observability.",
+            "businessImpact": "Slower AI feature velocity = delayed market differentiation; observability bottleneck risks losing early adopters to better-instrumented competitors."
+          },
+          {
+            "statement": "Linear's React/Next.js frontend scales feature delivery and experimentation velocity, but lacks edge-native deployment options to reduce latency for distributed teams using AI-agent coordination in real-time.",
+            "confidence": 0.8,
+            "evidence": [
+              "CEO ex-Airbnb principal designer; craft and speed are core values",
+              "33K global customers with latency-sensitive workflows (issue sync, agent messages)",
+              "Next.js frontend implies client-side rendering but no mention of edge deployment or regional caching",
+              "AI-agent coordination demands sub-100ms response times for user perception"
+            ],
+            "engineeringPain": "Global users experience higher latency during peak agent activity; regional deployments or edge caching not leveraged.",
+            "businessImpact": "Slower perceived responsiveness impacts adoption of real-time agent features; competitive disadvantage vs. platforms with native edge deployment."
+          }
+        ]
+      }
     },
     "opportunity_mapping": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.830Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T19:46:55.550Z",
+      "output": {
+        "opportunities": [
+          {
+            "engineeringPain": "Observability and distributed tracing across local-first sync and webhook integrations; no unified view into agent coordination failures.",
+            "vercelCapability": "Vercel Observability (edge functions + edge logging) for real-time tracing of local-first sync, webhooks, and agent message flows.",
+            "developerOutcome": "Engineers get millisecond-level observability into agent workflow failures; debugging time from hours to minutes.",
+            "businessImpact": "Faster AI feature iteration; reduced support tickets on agent integration issues; stronger product-market fit story for AI-agent teams.",
+            "estimatedRoi": "10–15x: 80% reduction in debugging time, 50% fewer escalations, 3–6 month faster time-to-agent-feature release.",
+            "priority": 1
+          },
+          {
+            "engineeringPain": "Global latency on real-time agent coordination; no edge-native deployment strategy for reducing TTFB and response times during peak agent activity.",
+            "vercelCapability": "Vercel Edge Functions and Edge Middleware for regional caching, geographically distributed request routing, and sub-100ms response times.",
+            "developerOutcome": "Linear's frontend serves AI-agent updates from nearest edge location; 3–5x latency reduction for distributed teams.",
+            "businessImpact": "Improved user experience during high-agent-load scenarios; faster feature adoption by latency-sensitive customers (OpenAI, Ramp, etc.).",
+            "estimatedRoi": "6–10x: 50% faster perceived responsiveness, 25% improvement in real-time feature adoption, improved NPS from global users.",
+            "priority": 2
+          }
+        ]
+      }
     },
     "content_generation": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.830Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T19:47:07.602Z",
+      "output": {
+        "messagingStrategy": {
+          "messagingAngle": "Position Vercel as the infrastructure partner for Linear's AI-agent-native coordination platform. Lead with observability (edge logging) to unblock debugging and iterate faster; support with edge deployment to eliminate latency during peak agent load. Use Durable's 1.1B tokens/day story as social proof of AI-scale capability.",
+          "technicalDepth": "medium",
+          "tone": "concise, peer-to-peer",
+          "story": "Position Vercel as the infrastructure partner for Linear's AI-agent-native coordination platform. Lead with observability (edge logging) to unblock debugging and iterate faster; support with edge deployment to eliminate latency during peak agent load. Use Durable's 1.1B tokens/day story as social proof of AI-scale capability.",
+          "hooks": [
+            "Karri: Reduce AI-agent debugging time by 80% with Vercel Observability"
+          ],
+          "cta": "Explore how edge-native observability cuts debugging time by 80%.",
+          "customerExamples": [],
+          "likelyObjections": []
+        },
+        "subjectLines": [
+          "Karri: Reduce AI-agent debugging time by 80% with Vercel Observability",
+          "Linear's next roadmap: observability + edge speed for agent coordination",
+          "See how Durable ships 1.1B daily AI tokens on Vercel infrastructure"
+        ],
+        "emailBody": "Hi Karri,\n\nLinear's AI-agent coordination roadmap is ambitious—but local-first sync + webhook integrations create observability blind spots. When bugs hit, engineers lose hours debugging distributed failures.\n\nVercel Observability gives you millisecond-level tracing across agent flows. Durable ships 1.1B tokens/day with 6 engineers on our platform—new agents in a day.\n\nSee how we'd accelerate your next release: http://localhost:3000/for/linear-d8c08ce2\n\nLooking forward,\nThe Vercel team",
+        "cta": "Explore how edge-native observability cuts debugging time by 80%.",
+        "objectionResponses": [
+          "We're already using webhooks and have observability coverage. Webhook observability is limited to request-level data. Vercel's edge logging adds millisecond-level tracing across local-first sync failures—the blind spot that causes 80% of agent coordination bugs.",
+          "Our current infrastructure serves our customers well. Today, yes. But as you scale AI-agent features to 33K+ customers, latency and debugging complexity grow exponentially. Edge deployment cuts latency 50% and observability cuts debugging time 80%—that's the difference between leading and following in agent-native coordination."
+        ],
+        "landingPageSlug": "linear-d8c08ce2",
+        "landingPageUrl": "http://localhost:3000/for/linear-d8c08ce2",
+        "send": {
+          "status": "drafted",
+          "subject": "Karri: Reduce AI-agent debugging time by 80% with Vercel Observability",
+          "body": "Hi Karri,\n\nLinear's AI-agent coordination roadmap is ambitious—but local-first sync + webhook integrations create observability blind spots. When bugs hit, engineers lose hours debugging distributed failures.\n\nVercel Observability gives you millisecond-level tracing across agent flows. Durable ships 1.1B tokens/day with 6 engineers on our platform—new agents in a day.\n\nSee how we'd accelerate your next release: http://localhost:3000/for/linear-d8c08ce2\n\nLooking forward,\nThe Vercel team",
+          "cta": "Explore how edge-native observability cuts debugging time by 80%.",
+          "sendWindow": {
+            "timezone": "America/Los_Angeles",
+            "earliestLocal": "09:00",
+            "latestLocal": "11:30",
+            "recommendedAt": "2026-07-06T21:47:07.602Z"
+          }
+        }
+      }
     },
     "sequence_planning": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.830Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T19:47:11.767Z",
+      "output": {
+        "channels": [
+          "email",
+          "LinkedIn"
+        ],
+        "cadence": "First email, light social touch, one follow-up, then pause.",
+        "timing": "Start during the recipient's local business hours.",
+        "steps": [
+          {
+            "channel": "email",
+            "delayDays": 0,
+            "purpose": "Share the tailored page"
+          },
+          {
+            "channel": "LinkedIn",
+            "delayDays": 2,
+            "purpose": "Light social touch"
+          },
+          {
+            "channel": "email",
+            "delayDays": 5,
+            "purpose": "Follow up once"
+          }
+        ],
+        "followUpLogic": "Follow up once if there is no reply; hand off on engagement.",
+        "exitConditions": [
+          "Positive reply",
+          "Explicit no",
+          "No engagement after follow-up"
+        ]
+      }
     },
     "engagement_intent": {
       "status": "pending",
@@ -53,5 +227,6 @@
     }
   },
   "engagementEvents": [],
-  "intentScore": 0
+  "intentScore": 0,
+  "recommendedNextAction": "Send light observability hook to Karri; pause after follow-up (day 6) unless there's email or landing page engagement signal."
 }
