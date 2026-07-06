@@ -1,7 +1,7 @@
 import { defineEval } from "eve/evals";
 import { equals, satisfies } from "eve/evals/expect";
 
-import { getLead } from "../agent/lib/store";
+import { getLead, readActivity } from "../agent/lib/store";
 import type {
   ContentGenerationOutput,
   HypothesisOutput,
@@ -13,6 +13,7 @@ export default defineEval({
     "fast full-pipeline path uses researcher and pipeline_writer, saves 2/2 strategy outputs, queues a draft, and does not run learning.",
   async test(t) {
     const startedAt = Date.now();
+    const activitySince = new Date(startedAt - 1000).toISOString();
     await t.send("FULL_PIPELINE_EVAL: run the optimized full pipeline.");
     const durationMs = Date.now() - startedAt;
 
@@ -20,10 +21,11 @@ export default defineEval({
     t.calledTool("get_lead");
     t.calledSubagent("researcher", { count: 1 });
     t.calledSubagent("pipeline_writer", { count: 1 });
-    t.calledTool("create_landing_page");
-    t.calledTool("send_message");
     t.calledTool("set_lead_outcome");
     t.notCalledTool("load_skill");
+    t.notCalledTool("save_stage_output");
+    t.notCalledTool("create_landing_page");
+    t.notCalledTool("send_message");
     t.noFailedActions();
     t.eventsSatisfy("pipeline_writer call does not pass outputSchema", (events) => {
       const writerCalls = events.flatMap((event) => {
@@ -47,6 +49,25 @@ export default defineEval({
       satisfies(
         (value): value is number => typeof value === "number" && value < 60_000,
         "mock full-pipeline eval finishes under 60 seconds",
+      ),
+    );
+
+    const activity = await readActivity({ since: activitySince, limit: 200 });
+    const persistStageProgress = activity.flatMap((event) => {
+      if (event.type !== "pipeline.stage.progress") return [];
+      const detail =
+        event.detail && typeof event.detail === "object"
+          ? (event.detail as Record<string, unknown>)
+          : {};
+      return detail.source === "persist_pipeline_payload" &&
+        typeof detail.stage === "string"
+        ? [detail.stage]
+        : [];
+    });
+    await t.require(
+      persistStageProgress.join(","),
+      equals(
+        "qualification,hypothesis,opportunity_mapping,content_generation,sequence_planning",
       ),
     );
 

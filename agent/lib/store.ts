@@ -7,6 +7,7 @@ import {
   SEED_LEAD_PROFILES,
   type SeedLeadProfile,
 } from "./seed-leads";
+import { emailBodyWithLandingPage } from "./stage-schemas";
 import { storage } from "./storage";
 import {
   DEFAULT_PIPELINE_CONFIG,
@@ -29,6 +30,7 @@ import {
 
 const CONFIG_KEY = "config";
 const ACTIVITY_KEY = "activity";
+const leadQueues = new Map<string, Promise<void>>();
 
 function leadKey(id: string): string {
   return `lead:${id}`;
@@ -36,6 +38,32 @@ function leadKey(id: string): string {
 
 function landingPageKey(slug: string): string {
   return `landing:${slug}`;
+}
+
+// Process-local write serialization for read-modify-write lead updates.
+// This protects local fs storage and single-process demos from lost updates.
+// Redis multi-instance deployments still need a distributed/atomic primitive.
+async function withLeadLock<T>(
+  leadId: string,
+  work: () => Promise<T>,
+): Promise<T> {
+  const previous = leadQueues.get(leadId) ?? Promise.resolve();
+  let release!: () => void;
+  const current = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const chained = previous.then(() => current, () => current);
+  leadQueues.set(leadId, chained);
+
+  await previous;
+  try {
+    return await work();
+  } finally {
+    release();
+    if (leadQueues.get(leadId) === chained) {
+      leadQueues.delete(leadId);
+    }
+  }
 }
 
 // Only keep known toggleable stage keys — drops stale keys (e.g. a
@@ -199,6 +227,20 @@ export async function saveLead(lead: Lead): Promise<Lead> {
   return next;
 }
 
+async function updateLead(
+  leadId: string,
+  mutate: (lead: Lead) => void | Promise<void>,
+): Promise<Lead> {
+  return withLeadLock(leadId, async () => {
+    const lead = await getLead(leadId);
+    if (!lead) {
+      throw new Error(`Lead not found: ${leadId}`);
+    }
+    await mutate(lead);
+    return saveLead(lead);
+  });
+}
+
 export function buildFreshSeedLead(profile: SeedLeadProfile, now?: string): Lead {
   const timestamp = now ?? new Date().toISOString();
   const lead: Lead = {
@@ -305,20 +347,16 @@ export async function saveStageOutput<T>(
   output: T,
   options?: { status?: StageRecord["status"]; note?: string },
 ): Promise<Lead> {
-  const lead = await getLead(leadId);
-  if (!lead) {
-    throw new Error(`Lead not found: ${leadId}`);
-  }
-
-  const now = new Date().toISOString();
-  (lead.stages as Record<PipelineStage, StageRecord>)[stage] = {
-    status: options?.status ?? "done",
-    updatedAt: now,
-    output,
-    note: options?.note,
-  };
-  lead.currentStage = stage;
-  return saveLead(lead);
+  return updateLead(leadId, (lead) => {
+    const now = new Date().toISOString();
+    (lead.stages as Record<PipelineStage, StageRecord>)[stage] = {
+      status: options?.status ?? "done",
+      updatedAt: now,
+      output,
+      note: options?.note,
+    };
+    lead.currentStage = stage;
+  });
 }
 
 export async function markStageSkipped(
@@ -326,17 +364,14 @@ export async function markStageSkipped(
   stage: PipelineStage,
   note: string,
 ): Promise<Lead> {
-  const lead = await getLead(leadId);
-  if (!lead) {
-    throw new Error(`Lead not found: ${leadId}`);
-  }
-  (lead.stages as Record<PipelineStage, StageRecord>)[stage] = {
-    status: "skipped",
-    updatedAt: new Date().toISOString(),
-    note,
-  };
-  lead.currentStage = stage;
-  return saveLead(lead);
+  return updateLead(leadId, (lead) => {
+    (lead.stages as Record<PipelineStage, StageRecord>)[stage] = {
+      status: "skipped",
+      updatedAt: new Date().toISOString(),
+      note,
+    };
+    lead.currentStage = stage;
+  });
 }
 
 export async function setLeadOutcome(
@@ -344,15 +379,62 @@ export async function setLeadOutcome(
   outcome: Lead["outcome"],
   recommendedNextAction?: string,
 ): Promise<Lead> {
-  const lead = await getLead(leadId);
-  if (!lead) {
-    throw new Error(`Lead not found: ${leadId}`);
-  }
-  lead.outcome = outcome;
-  if (recommendedNextAction) {
-    lead.recommendedNextAction = recommendedNextAction;
-  }
-  return saveLead(lead);
+  return updateLead(leadId, (lead) => {
+    lead.outcome = outcome;
+    if (recommendedNextAction) {
+      lead.recommendedNextAction = recommendedNextAction;
+    }
+  });
+}
+
+function presentText(value: string | undefined, fallback: string): string {
+  return value?.trim() ? value : fallback;
+}
+
+export async function queueSendDraft(
+  leadId: string,
+  input: { subject: string; body: string; cta: string; timezone?: string },
+): Promise<{ lead: Lead; send: NonNullable<ContentGenerationOutput["send"]> }> {
+  let send: NonNullable<ContentGenerationOutput["send"]>;
+  const lead = await updateLead(leadId, (lead) => {
+    const existing = (lead.stages.content_generation?.output ??
+      {}) as Partial<ContentGenerationOutput>;
+    const body = emailBodyWithLandingPage(input.body, existing.landingPageUrl);
+    const sendWindow = computeSendWindow(
+      input.timezone ?? lead.timezone ?? "America/Los_Angeles",
+    );
+
+    send = {
+      status: "drafted",
+      subject: input.subject,
+      body,
+      cta: input.cta,
+      sendWindow,
+    };
+
+    lead.stages.content_generation = {
+      status: "done",
+      updatedAt: new Date().toISOString(),
+      output: {
+        messagingStrategy: existing.messagingStrategy,
+        subjectLines: existing.subjectLines?.length
+          ? existing.subjectLines
+          : [input.subject],
+        emailBody: emailBodyWithLandingPage(
+          presentText(existing.emailBody, body),
+          existing.landingPageUrl,
+        ),
+        cta: presentText(existing.cta, input.cta),
+        objectionResponses: existing.objectionResponses ?? [],
+        landingPageSlug: existing.landingPageSlug,
+        landingPageUrl: existing.landingPageUrl,
+        send,
+      },
+    };
+    lead.currentStage = "content_generation";
+  });
+
+  return { lead, send: send! };
 }
 
 export type SendReviewAction = "approve" | "deny" | "edit";
@@ -367,57 +449,63 @@ export async function reviewSend(
   action: SendReviewAction,
   edits?: { subject?: string; body?: string },
 ): Promise<Lead> {
-  const lead = await getLead(leadId);
-  if (!lead) {
-    throw new Error(`Lead not found: ${leadId}`);
-  }
+  let reviewedSubject = "";
+  let reviewedStatus: NonNullable<ContentGenerationOutput["send"]>["status"] =
+    "drafted";
+  const saved = await updateLead(leadId, (lead) => {
+    const content = lead.stages.content_generation?.output as
+      | ContentGenerationOutput
+      | undefined;
+    if (!content?.send) {
+      throw new Error(`Lead ${leadId} has no draft queued for review`);
+    }
 
-  const content = lead.stages.content_generation?.output as
-    | ContentGenerationOutput
-    | undefined;
-  if (!content?.send) {
-    throw new Error(`Lead ${leadId} has no draft queued for review`);
-  }
+    const send = { ...content.send };
+    if (edits?.subject !== undefined && edits.subject.trim()) {
+      send.subject = edits.subject.trim();
+    }
+    if (edits?.body !== undefined && edits.body.trim()) {
+      send.body = edits.body.trim();
+    }
 
-  const send = { ...content.send };
-  if (edits?.subject !== undefined && edits.subject.trim()) {
-    send.subject = edits.subject.trim();
-  }
-  if (edits?.body !== undefined && edits.body.trim()) {
-    send.body = edits.body.trim();
-  }
+    const now = new Date().toISOString();
+    if (action === "approve") {
+      send.status = "approved";
+      send.approvedAt = now;
+      delete send.deniedAt;
+    } else if (action === "deny") {
+      send.status = "denied";
+      send.deniedAt = now;
+      delete send.approvedAt;
+    } else {
+      send.status = "drafted";
+      delete send.approvedAt;
+      delete send.deniedAt;
+    }
 
-  const now = new Date().toISOString();
-  if (action === "approve") {
-    send.status = "approved";
-    send.approvedAt = now;
-    delete send.deniedAt;
-  } else if (action === "deny") {
-    send.status = "denied";
-    send.deniedAt = now;
-    delete send.approvedAt;
-  } else {
-    send.status = "drafted";
-    delete send.approvedAt;
-    delete send.deniedAt;
-  }
-
-  lead.stages.content_generation = {
-    ...lead.stages.content_generation,
-    updatedAt: now,
-    output: { ...content, send },
-  };
-  const saved = await saveLead(lead);
+    lead.stages.content_generation = {
+      ...lead.stages.content_generation,
+      updatedAt: now,
+      output: { ...content, send },
+    };
+    reviewedSubject = send.subject;
+    reviewedStatus = send.status;
+  });
 
   const summaries: Record<SendReviewAction, string> = {
-    approve: `Draft approved by BDR — send released: "${send.subject}"`,
-    deny: `Draft denied by BDR — send blocked: "${send.subject}"`,
-    edit: `Draft edited by BDR: "${send.subject}"`,
+    approve: `Draft approved by BDR — send released: "${reviewedSubject}"`,
+    deny: `Draft denied by BDR — send blocked: "${reviewedSubject}"`,
+    edit: `Draft edited by BDR: "${reviewedSubject}"`,
   };
   await appendActivity({
     type: "review.decision",
     summary: summaries[action],
-    detail: { leadId, action, subject: send.subject, status: send.status },
+    detail: {
+      leadId,
+      action,
+      subject: reviewedSubject,
+      status: reviewedStatus,
+    },
   });
 
   return saved;

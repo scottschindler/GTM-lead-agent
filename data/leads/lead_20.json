@@ -6,281 +6,52 @@
   "companyDomain": "pilot.com",
   "source": "pricing-page",
   "timezone": "America/Los_Angeles",
-  "createdAt": "2026-07-05T02:46:23.798Z",
-  "updatedAt": "2026-07-05T03:11:52.005Z",
-  "currentStage": "learning",
-  "outcome": "nurture",
+  "createdAt": "2026-07-06T12:46:53.829Z",
+  "updatedAt": "2026-07-06T12:46:53.837Z",
+  "currentStage": "intake",
+  "outcome": "open",
   "stages": {
     "intake": {
       "status": "done",
-      "updatedAt": "2026-07-05T02:46:23.798Z",
+      "updatedAt": "2026-07-06T12:46:53.829Z",
       "output": {
         "leadId": "lead_20",
         "source": "pricing-page"
       }
     },
     "research": {
-      "status": "done",
-      "updatedAt": "2026-07-05T03:09:17.472Z",
-      "output": {
-        "company": {
-          "name": "Pilot.com",
-          "industry": "Financial Services / Back-Office Accounting",
-          "techStack": [],
-          "recentNews": [],
-          "growthSignals": [],
-          "sources": []
-        },
-        "person": {
-          "name": "Jessica McKellar",
-          "title": "Founder and CEO",
-          "seniority": "Executive / Founder",
-          "sources": []
-        },
-        "initiatives": [
-          "Launch of Meridian AI operating system for automated bookkeeping and financial operations",
-          "Expansion into AI-powered finance advisory and fractional CFO services",
-          "Local Partner Program (2024-2025) to empower independent accountants nationwide using AI platform"
-        ],
-        "productLaunches": [],
-        "aiInitiatives": [],
-        "hiringTrends": [],
-        "architectureNotes": [],
-        "competitors": [],
-        "priorities": [
-          "Automating bookkeeping through AI to free experts for strategic advisory",
-          "Scaling financial services to underserved SMB and startup markets",
-          "Supporting startups through fundraising, cash flow modeling, and growth planning"
-        ],
-        "summary": "Pilot is the largest accounting firm for startups and SMBs in the US, with 3,000+ customers and unicorn status. Jessica McKellar, recently promoted to CEO (July 2024) after 7 years as CTO, leads a 425-person team delivering 50/50 blend of people and software. The company is aggressively pursuing AI automation (Meridian OS) and launched a Local Partner Program to expand reach via independent accountants.",
-        "sources": [
-          "https://pilot.com",
-          "https://www.businesswire.com/news/home/20200225005355/en/Pilot.com-Launches-Three-New-Products-That-Reach-Beyond-Bookkeeping",
-          "https://www.indexventures.com/perspectives/pilotcom-raises-40m-in-series-b-funding-and-launches-pilot-tax/",
-          "https://linkedin.com/in/jesstess",
-          "https://review.firstround.com/podcast/what-this-3-time-founding-team-did-differently-to-find-product-market-fit-faster-jessica-mckellar-cto-of-pilot/"
-        ]
-      }
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.837Z"
     },
     "qualification": {
-      "status": "done",
-      "updatedAt": "2026-07-05T03:09:31.840Z",
-      "output": {
-        "scores": {
-          "icpFit": 7,
-          "buyingAuthority": 10,
-          "productUsageOrIntent": 7,
-          "engineeringMaturity": 8,
-          "companyGrowth": 9,
-          "businessImpact": 7,
-          "overallPriority": 8
-        },
-        "verdict": "qualified",
-        "rationale": "Pilot is a fast-growing (unicorn status, 3,000+ customers, 425 employees) fintech/accounting automation company aggressively investing in AI product (Meridian OS) and expanding via a Local Partner Program — strong company growth and engineering maturity signals. Contact Jessica McKellar is Founder and CEO, promoted from a 7-year CTO tenure, giving maximal buying authority and deep technical credibility. Lead source is a direct pricing-page visit, a concrete product intent signal. Business impact is solid given Pilot's heavy investment in software/AI automation infrastructure, though ICP fit is slightly tempered since Pilot's core product is a finance/accounting service rather than a pure dev-tool or frontend-heavy platform. Overall this is a high-priority, well-qualified account."
-      }
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.837Z"
     },
     "hypothesis": {
-      "status": "done",
-      "updatedAt": "2026-07-05T03:09:47.027Z",
-      "output": {
-        "hypotheses": [
-          {
-            "statement": "Pilot is building AI-native product experiences (Meridian OS) that require fast iteration on customer-facing dashboards and AI-driven UI surfaces.",
-            "confidence": 0.65,
-            "evidence": [
-              "Company is aggressively pursuing AI automation via 'Meridian OS'",
-              "CEO Jessica McKellar was CTO for 7 years, signaling deep involvement in product/engineering direction of AI initiatives"
-            ],
-            "engineeringPain": "Shipping AI features (streaming responses, agent UIs, human-in-the-loop review flows) quickly without owning brittle custom infrastructure for inference orchestration and edge delivery.",
-            "businessImpact": "Faster AI feature velocity directly supports Pilot's competitive differentiation in automating bookkeeping, which is core to retaining and growing its 3,000+ customer base."
-          },
-          {
-            "statement": "Pilot's customer-facing web app (client dashboard, reporting, invoicing surfaces) needs to scale reliably as they grow from 3,000+ customers, likely with performance and DX pressure on the frontend team.",
-            "confidence": 0.55,
-            "evidence": [
-              "3,000+ customers and unicorn scale implies a growing, high-traffic customer web application",
-              "425-person team implies dozens of engineers likely working across multiple product surfaces"
-            ],
-            "engineeringPain": "Managing deployment velocity, preview environments, and performance across a growing customer-facing web app with an expanding engineering org.",
-            "businessImpact": "Faster, safer deploys and better DX reduce time-to-ship for new financial features and reduce risk of downtime for a product handling customers' financial data."
-          },
-          {
-            "statement": "The new Local Partner Program (expanding via independent accountants) likely requires a partner-facing portal or multi-tenant web experience that needs to scale quickly.",
-            "confidence": 0.45,
-            "evidence": [
-              "Pilot launched a Local Partner Program to expand reach via independent accountants"
-            ],
-            "engineeringPain": "Standing up and iterating on a new partner-facing product surface quickly, potentially multi-tenant, without diverting core engineering resources from Meridian OS.",
-            "businessImpact": "Faster time-to-market for the partner portal directly enables the new distribution channel's growth targets."
-          },
-          {
-            "statement": "As a 425-person, unicorn-stage company balancing a 50/50 people+software delivery model, Pilot's engineering org is under pressure to increase automation/software leverage, which likely means increased investment in AI-assisted internal and external tooling.",
-            "confidence": 0.5,
-            "evidence": [
-              "Company describes itself as delivering a '50/50 blend of people and software'",
-              "Aggressive AI automation push (Meridian OS)"
-            ],
-            "engineeringPain": "Balancing infrastructure spend and engineering focus between building differentiated AI product logic vs. undifferentiated platform/hosting concerns.",
-            "businessImpact": "Offloading hosting/infra complexity to a managed platform frees engineering capacity to focus on the AI automation that differentiates Pilot's core value proposition."
-          }
-        ]
-      }
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.837Z"
     },
     "opportunity_mapping": {
-      "status": "done",
-      "updatedAt": "2026-07-05T03:10:09.868Z",
-      "output": {
-        "opportunities": [
-          {
-            "engineeringPain": "Shipping AI features (streaming responses, agent UIs, human-in-the-loop review flows) for Meridian OS quickly without owning brittle custom inference/orchestration infra.",
-            "vercelCapability": "AI Cloud (AI SDK for multi-provider model apps, streaming/tool-calling/agent primitives) plus fluid compute for bursty AI workloads.",
-            "developerOutcome": "Engineers ship model-backed features and agent UIs without building and maintaining bespoke inference infrastructure, and can iterate on prompts/UI in days not months.",
-            "businessImpact": "Faster differentiation on Pilot's core AI automation story (Meridian OS), directly supporting retention and expansion across its 3,000+ customer base.",
-            "estimatedRoi": "Durable runs AI agents serving ~1.1B tokens/day with just 6 engineers at 3-4x lower infra cost than self-hosting, shipping new production agents in a day (https://vercel.com/blog/360-billion-tokens-3-million-customers-6-engineers). Stably's 6-person team ships AI testing agents in hours instead of weeks (https://vercel.com/customers/how-stably-ships-ai-testing-agents-in-hours-not-weeks) — both plausible analogs for Pilot's lean, AI-heavy engineering team.",
-            "priority": 1
-          },
-          {
-            "engineeringPain": "Scaling deployment velocity and DX for the customer-facing web app (dashboard, reporting, invoicing) as the 425-person engineering org and 3,000+ customer base grow.",
-            "vercelCapability": "Frontend Cloud / Next.js platform with instant PR previews, plus Developer experience tooling (Git-connected deploys, observability/logs).",
-            "developerOutcome": "Product and engineering teams get fast, safe preview deployments per PR and faster builds, reducing review friction and time-to-ship for new financial features.",
-            "businessImpact": "Reduced risk of downtime/regressions on a product handling customers' financial data, and faster shipping cadence for competitive differentiation.",
-            "estimatedRoi": "Sonos saw 75% faster builds and 10% better performance scores after migrating (https://vercel.com/blog/how-sonos-amplified-their-devex); Rippling scaled its frontend through $13M to $100M in revenue growth on Next.js and Vercel (https://vercel.com/customers/how-vercel-and-next-js-keep-rippling-on-their-rising-path-to-success) — a close analog given Rippling's similarly regulated, growth-stage B2B finance/HR SaaS profile.",
-            "priority": 2
-          },
-          {
-            "engineeringPain": "Standing up a new partner-facing, potentially multi-tenant portal for the Local Partner Program quickly without diverting core engineering resources from Meridian OS.",
-            "vercelCapability": "Multi-tenant SaaS toolkit (automated domain/SSL provisioning, custom domains at scale) built on the Frontend Cloud platform.",
-            "developerOutcome": "A small team can spin up and iterate on a partner portal with per-partner custom domains/branding without building bespoke multi-tenant infrastructure.",
-            "businessImpact": "Faster time-to-market for the new distribution channel, directly enabling partner program growth targets without new headcount.",
-            "estimatedRoi": "Dub grew to 3,000+ active custom domains growing 25% MoM on Vercel's multi-tenant SaaS toolkit (https://vercel.com/customers/how-dub-grew-to-3000-active-domains-with-vercels-multi-tenant-saas-toolkit); Mintlify manages thousands of customer docs domains from a single Vercel project (https://vercel.com/blog/mintlify-scaling-a-powerful-documentation-platform-with-vercel).",
-            "priority": 3
-          },
-          {
-            "engineeringPain": "Balancing scarce engineering capacity between building differentiated AI/product logic (Meridian OS, partner program) versus maintaining undifferentiated hosting/infra.",
-            "vercelCapability": "Fluid compute & infrastructure (serverless without managing servers, automatic scaling, secure deployment isolation) reducing platform-ops overhead.",
-            "developerOutcome": "Engineers spend materially less time managing infrastructure and more time on product-differentiating AI and finance workflows.",
-            "businessImpact": "Reallocates engineering leverage in a 50/50 people+software delivery model toward the software automation that drives Pilot's margin and growth story.",
-            "estimatedRoi": "Forrester Total Economic Impact study found 264% three-year ROI and developers spending 90% less time managing frontend infrastructure and 80% less time building/deploying (https://vercel.com/blog/forrester-total-economic-impact-vercel-roi).",
-            "priority": 4
-          }
-        ]
-      }
-    },
-    "sequence_planning": {
-      "status": "done",
-      "updatedAt": "2026-07-05T03:10:29.285Z",
-      "output": {
-        "channels": [
-          "email",
-          "linkedin"
-        ],
-        "cadence": "Light-touch, low-frequency cadence appropriate for a founder/CEO-level contact — one initial email, one follow-up touch, then pause and monitor rather than an aggressive multi-touch sequence.",
-        "timing": "Send the first email during Jessica's business hours in America/Los_Angeles; lead came from a pricing-page visit so timing should capitalize on recent active interest (send within 1-2 business days of the visit).",
-        "steps": [
-          {
-            "channel": "email",
-            "delayDays": 0,
-            "purpose": "Initial personalized outreach referencing Pilot's AI automation push (Meridian OS) and pricing-page visit, linking to a personalized landing page with relevant opportunities and customer stories, CTA to a short call."
-          },
-          {
-            "channel": "linkedin",
-            "delayDays": 4,
-            "purpose": "Light-touch LinkedIn connection/comment referencing the same theme, to increase visibility without being pushy."
-          },
-          {
-            "channel": "email",
-            "delayDays": 7,
-            "purpose": "Single concise follow-up email if no reply, reiterating value with a lighter CTA (e.g., offering a specific resource or async answer instead of a meeting ask)."
-          }
-        ],
-        "followUpLogic": "If Jessica replies at any point, stop the automated cadence and hand the thread to a human BDR/AE for live conversation. If no reply after the day-7 follow-up, pause outreach and move to passive monitoring (track engagement signals) rather than continuing to send.",
-        "exitConditions": [
-          "Exit to nurture if no engagement after the day-7 follow-up.",
-          "Exit to handed_off immediately upon any reply or high-intent signal (e.g., pricing/demo page revisit, meeting request).",
-          "Exit to disqualified only if new research surfaces a disqualifying fact (e.g., contact no longer at Pilot)."
-        ]
-      }
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.837Z"
     },
     "content_generation": {
-      "status": "done",
-      "updatedAt": "2026-07-05T03:11:27.319Z",
-      "output": {
-        "subjectLines": [
-          "What Meridian OS could ship next, faster",
-          "A page for Pilot: AI product velocity + partner portal",
-          "Jessica — quick thought on Meridian OS's infra"
-        ],
-        "emailBody": "Hi Jessica,\n\nSaw you stopped by our pricing page — figured I'd skip the generic follow-up and go straight to something useful.\n\nGiven Pilot's push into AI automation with Meridian OS, and the new Local Partner Program, two patterns jumped out as relevant from teams we work with:\n\n1. AI product velocity: Durable's 6-engineer team ships production AI agents (~1.1B tokens/day) at 3-4x lower infra cost than self-hosting, using our AI SDK and fluid compute instead of building bespoke inference orchestration. That's the kind of leverage that could apply directly to Meridian OS's agent/review-flow surfaces.\n2. Partner portal speed: Dub scaled to 3,000+ active custom domains (growing 25% MoM) on our multi-tenant SaaS toolkit — relevant if the Local Partner Program needs a fast-moving, per-partner portal without pulling engineers off Meridian OS.\n\nGiven your own 7 years running engineering at Pilot, I put together a short page with the specifics rather than a generic pitch: http://localhost:3000/for/pilot-8acbc4f7\n\nWorth 20 minutes to talk through where this could fit for Pilot's stack? Happy to go as technical as you'd like.\n\nBest,\nThe Vercel team",
-        "cta": "Book 20 minutes with our team",
-        "objectionResponses": [
-          "If 'we have infra for this already': this is about freeing engineering time from infra upkeep for Meridian OS's differentiated logic, not adding a new system to babysit.",
-          "If 'we're focused on AI/ML infra, not hosting': the fit here is specifically the AI SDK/agent primitives and multi-tenant portal tooling, not a hosting migration.",
-          "If 'not evaluating vendors right now': no pressure — the page is there whenever useful, and a 20-minute call can be purely exploratory."
-        ],
-        "landingPageSlug": "pilot-8acbc4f7",
-        "landingPageUrl": "http://localhost:3000/for/pilot-8acbc4f7",
-        "send": {
-          "status": "drafted",
-          "subject": "What Meridian OS could ship next, faster",
-          "body": "Hi Jessica,\n\nSaw you stopped by our pricing page — figured I'd skip the generic follow-up and go straight to something useful.\n\nGiven Pilot's push into AI automation with Meridian OS, and the new Local Partner Program, two patterns jumped out as relevant from teams we work with:\n\n1. AI product velocity: Durable's 6-engineer team ships production AI agents (~1.1B tokens/day) at 3-4x lower infra cost than self-hosting, using our AI SDK and fluid compute instead of building bespoke inference orchestration. That's the kind of leverage that could apply directly to Meridian OS's agent/review-flow surfaces.\n2. Partner portal speed: Dub scaled to 3,000+ active custom domains (growing 25% MoM) on our multi-tenant SaaS toolkit — relevant if the Local Partner Program needs a fast-moving, per-partner portal without pulling engineers off Meridian OS.\n\nGiven your own 7 years running engineering at Pilot, I put together a short page with the specifics rather than a generic pitch: http://localhost:3000/for/pilot-8acbc4f7\n\nWorth 20 minutes to talk through where this could fit for Pilot's stack? Happy to go as technical as you'd like.\n\nBest,\nThe Vercel team",
-          "cta": "Book 20 minutes with our team",
-          "sendWindow": {
-            "timezone": "America/Los_Angeles",
-            "earliestLocal": "09:00",
-            "latestLocal": "11:30",
-            "recommendedAt": "2026-07-05T05:11:27.319Z"
-          }
-        }
-      }
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.837Z"
+    },
+    "sequence_planning": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.837Z"
     },
     "engagement_intent": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.807Z"
+      "updatedAt": "2026-07-06T12:46:53.837Z"
     },
     "learning": {
-      "status": "done",
-      "updatedAt": "2026-07-05T03:11:52.005Z",
-      "output": {
-        "insights": [
-          {
-            "category": "qualification",
-            "insight": "Fintech/finance-back-office companies (like Pilot) that are aggressively investing in AI product automation and matching CEO email domain to a technical founder still score as high-priority accounts (8/10) even though their core product isn't a classic dev-tool/frontend platform, because buying authority and company growth signals dominate the weighted score.",
-            "evidence": "Pilot scored overallPriority 8 with icpFit 7 (slightly tempered since core product is finance/accounting, not dev tooling) but buyingAuthority 10 and companyGrowth 9 (unicorn, 3,000+ customers, Local Partner Program expansion).",
-            "applyTo": "qualification for fintech/vertical-SaaS leads with technical founder-CEOs and visible AI initiatives"
-          },
-          {
-            "category": "hypothesis_accuracy",
-            "insight": "For companies with a named internal AI initiative (Pilot's 'Meridian OS'), hypotheses anchored to that specific initiative plus a secondary growth initiative (Pilot's Local Partner Program) produced concrete, non-generic opportunity mapping with two distinct high-confidence pain areas (AI product velocity, multi-tenant partner portal) rather than one vague pain.",
-            "evidence": "Hypotheses referenced 'Meridian OS' and 'Local Partner Program' by name, which mapped cleanly to Durable/Rippling (AI + growth-stage B2B finance SaaS) and Dub/Mintlify (multi-tenant portal) customer stories respectively.",
-            "applyTo": "hypothesis and opportunity_mapping for accounts with a named internal product/AI initiative discoverable in research"
-          },
-          {
-            "category": "messaging",
-            "insight": "For technical CEO/founder personas who were formerly CTO, using peer-to-peer engineering tone with concrete infra metrics (tokens/day, engineer headcount, cost multiples) rather than generic sales language, and referencing the pricing-page visit directly, produces a more credible non-salesy opener than a broad value-prop email.",
-            "evidence": "Email opened by directly acknowledging the pricing-page visit and led with Durable's 1.1B tokens/day at 6 engineers and 3-4x cost reduction, tailored to Jessica's 7-year CTO background per messaging strategy.",
-            "applyTo": "content_generation for technical founder/CEO personas, especially former engineers now in the CEO seat"
-          },
-          {
-            "category": "general",
-            "insight": "Engagement/intent data is not yet available for this run since the draft is still pending BDR approval in the Inbox; qualification and messaging decisions rest solely on qualitative account-fit and research signals, not simulated engagement.",
-            "evidence": "send_message returned delivered:false, status 'drafted', queued for BDR review; simulate_engagement was not invoked as no approval/send has occurred yet.",
-            "applyTo": "engagement_intent, wrap-up for leads still awaiting BDR approval"
-          }
-        ],
-        "hypothesisAccuracy": "Not yet testable against real engagement — the outreach draft is queued for BDR approval and has not been sent, so no open/click/reply signals exist. The hypotheses (AI product velocity for Meridian OS, customer-dashboard scaling, partner-portal multi-tenancy, and infra/engineering leverage trade-offs) are well-grounded in the research brief's named initiatives and should be validated once engagement data is available via simulate_engagement post-approval.",
-        "whatWorked": [
-          "Grounding hypotheses in named, specific initiatives (Meridian OS, Local Partner Program) rather than generic pains produced concrete, source-backed opportunity mapping.",
-          "Reused prior insight on light-touch cadence for founder/CEO contacts, avoiding an overly aggressive sequence.",
-          "Messaging strategy matched technical depth to Jessica's CTO background, referencing concrete customer metrics instead of generic marketing claims."
-        ],
-        "whatToChange": [
-          "Once the draft is approved and sent, run simulate_engagement to validate whether the AI-automation angle (vs. the partner-portal angle) drives stronger signal, and update messaging insights accordingly.",
-          "Consider a slightly stronger ICP fit caveat in qualification rationale for vertical-SaaS/fintech leads where the core product is not developer tooling, to avoid overweighting buying authority alone."
-        ]
-      }
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.837Z"
     }
   },
   "engagementEvents": [],
-  "intentScore": 0,
-  "recommendedNextAction": "Outreach draft is queued in the Inbox for BDR approval (send window 09:00-11:30 America/Los_Angeles). Given Jessica McKellar's CEO/founder authority, Pilot's unicorn-stage growth, and the concrete AI-automation (Meridian OS) and partner-portal initiatives, this account warrants human AE awareness once approved — flag for fast follow-up if she engages, and monitor for reply/click signals given her seniority typically yields passive engagement rather than direct reply."
+  "intentScore": 0
 }

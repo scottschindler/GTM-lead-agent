@@ -6,14 +6,14 @@
   "companyDomain": "linear.app",
   "source": "newsletter",
   "timezone": "America/Los_Angeles",
-  "createdAt": "2026-07-05T02:46:23.798Z",
-  "updatedAt": "2026-07-05T02:46:23.799Z",
+  "createdAt": "2026-07-06T12:46:53.829Z",
+  "updatedAt": "2026-07-06T12:46:53.830Z",
   "currentStage": "intake",
   "outcome": "open",
   "stages": {
     "intake": {
       "status": "done",
-      "updatedAt": "2026-07-05T02:46:23.798Z",
+      "updatedAt": "2026-07-06T12:46:53.829Z",
       "output": {
         "leadId": "lead_06",
         "source": "newsletter"
@@ -21,35 +21,35 @@
     },
     "research": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.799Z"
+      "updatedAt": "2026-07-06T12:46:53.830Z"
     },
     "qualification": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.799Z"
+      "updatedAt": "2026-07-06T12:46:53.830Z"
     },
     "hypothesis": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.799Z"
+      "updatedAt": "2026-07-06T12:46:53.830Z"
     },
     "opportunity_mapping": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.799Z"
-    },
-    "sequence_planning": {
-      "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.799Z"
+      "updatedAt": "2026-07-06T12:46:53.830Z"
     },
     "content_generation": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.799Z"
+      "updatedAt": "2026-07-06T12:46:53.830Z"
+    },
+    "sequence_planning": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.830Z"
     },
     "engagement_intent": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.799Z"
+      "updatedAt": "2026-07-06T12:46:53.830Z"
     },
     "learning": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.799Z"
+      "updatedAt": "2026-07-06T12:46:53.830Z"
     }
   },
   "engagementEvents": [],

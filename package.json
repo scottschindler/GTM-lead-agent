@@ -12,7 +12,7 @@
     "lint": "eslint",
     "eve:info": "eve info",
     "eve:build": "eve build",
-    "eval": "EVE_EVAL_MOCK=1 eve eval"
+    "eval": "EVE_EVAL_MOCK=1 eve eval --max-concurrency 1"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",

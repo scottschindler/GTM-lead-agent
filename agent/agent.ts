@@ -1,8 +1,6 @@
 import { defineAgent } from "eve";
 import { mockModel } from "eve/evals";
 
-import { PIPELINE_WRITER_MOCK_OUTPUT } from "./lib/pipeline-writer";
-
 const realModel = "anthropic/claude-sonnet-5";
 
 type ToolResult = {
@@ -12,32 +10,6 @@ type ToolResult = {
 
 function toolResultCount(toolResults: readonly ToolResult[], name: string): number {
   return toolResults.filter((result) => result.name === name).length;
-}
-
-function latestToolOutput<T>(
-  toolResults: readonly ToolResult[],
-  name: string,
-): T | undefined {
-  return toolResults.findLast((result) => result.name === name)?.output as
-    | T
-    | undefined;
-}
-
-function fullEvalContentOutput(landingPage?: {
-  slug?: string;
-  url?: string;
-}) {
-  const content = PIPELINE_WRITER_MOCK_OUTPUT.content_generation;
-  const landingPageUrl = landingPage?.url ?? "https://example.com/for/eval";
-  return {
-    messagingStrategy: content.messagingStrategy,
-    subjectLines: content.subjectLines,
-    emailBody: content.emailBody.replace("{{landingPageUrl}}", landingPageUrl),
-    cta: content.cta,
-    objectionResponses: content.objectionResponses,
-    landingPageSlug: landingPage?.slug ?? "eval-page",
-    landingPageUrl,
-  };
 }
 
 const evalModel = mockModel({
@@ -189,124 +161,7 @@ const evalModel = mockModel({
               name: "pipeline_writer",
               input: {
                 message:
-                  "Use the saved compact research for lead_eval_full and return the full pipeline writer output with exactly 2 hypotheses and 2 opportunities.",
-              },
-            },
-          ],
-        };
-      }
-
-      const stageSaves = toolResultCount(results, "save_stage_output");
-      if (stageSaves === 0) {
-        return {
-          toolCalls: [
-            {
-              name: "save_stage_output",
-              input: {
-                leadId: "lead_eval_full",
-                stage: "qualification",
-                output: PIPELINE_WRITER_MOCK_OUTPUT.qualification,
-              },
-            },
-          ],
-        };
-      }
-
-      if (stageSaves === 1) {
-        return {
-          toolCalls: [
-            {
-              name: "save_stage_output",
-              input: {
-                leadId: "lead_eval_full",
-                stage: "hypothesis",
-                output: PIPELINE_WRITER_MOCK_OUTPUT.hypothesis,
-              },
-            },
-          ],
-        };
-      }
-
-      if (stageSaves === 2) {
-        return {
-          toolCalls: [
-            {
-              name: "save_stage_output",
-              input: {
-                leadId: "lead_eval_full",
-                stage: "opportunity_mapping",
-                output: PIPELINE_WRITER_MOCK_OUTPUT.opportunity_mapping,
-              },
-            },
-          ],
-        };
-      }
-
-      if (stageSaves === 3) {
-        return {
-          toolCalls: [
-            {
-              name: "save_stage_output",
-              input: {
-                leadId: "lead_eval_full",
-                stage: "sequence_planning",
-                output: PIPELINE_WRITER_MOCK_OUTPUT.sequence_planning,
-              },
-            },
-          ],
-        };
-      }
-
-      if (toolResultCount(results, "create_landing_page") === 0) {
-        const landingPage = PIPELINE_WRITER_MOCK_OUTPUT.content_generation
-          .landingPage;
-        return {
-          toolCalls: [
-            {
-              name: "create_landing_page",
-              input: {
-                leadId: "lead_eval_full",
-                ...landingPage,
-              },
-            },
-          ],
-        };
-      }
-
-      if (stageSaves === 4) {
-        const landingPage = latestToolOutput<{
-          slug?: string;
-          url?: string;
-        }>(results, "create_landing_page");
-        return {
-          toolCalls: [
-            {
-              name: "save_stage_output",
-              input: {
-                leadId: "lead_eval_full",
-                stage: "content_generation",
-                output: fullEvalContentOutput(landingPage),
-              },
-            },
-          ],
-        };
-      }
-
-      if (toolResultCount(results, "send_message") === 0) {
-        const landingPage = latestToolOutput<{
-          slug?: string;
-          url?: string;
-        }>(results, "create_landing_page");
-        const content = fullEvalContentOutput(landingPage);
-        return {
-          toolCalls: [
-            {
-              name: "send_message",
-              input: {
-                leadId: "lead_eval_full",
-                subject: content.subjectLines[0],
-                body: content.emailBody,
-                cta: content.cta,
+                  "Use the saved compact research for lead_eval_full. Compose the full downstream payload, call persist_pipeline_payload once, and return the compact receipt.",
               },
             },
           ],
@@ -314,15 +169,27 @@ const evalModel = mockModel({
       }
 
       if (toolResultCount(results, "set_lead_outcome") === 0) {
+        const writerReceipt = results.findLast(
+          (result) => result.name === "pipeline_writer",
+        )?.output as
+          | {
+              verdict?: "qualified" | "disqualified";
+              recommendedNextAction?: string;
+            }
+          | undefined;
         return {
           toolCalls: [
             {
               name: "set_lead_outcome",
               input: {
                 leadId: "lead_eval_full",
-                outcome: "nurture",
+                outcome:
+                  writerReceipt?.verdict === "disqualified"
+                    ? "disqualified"
+                    : "nurture",
                 recommendedNextAction:
-                  PIPELINE_WRITER_MOCK_OUTPUT.recommendedNextAction,
+                  writerReceipt?.recommendedNextAction ??
+                  "Review the drafted email in the Inbox and prioritize follow-up if the buyer engages with the personalized page.",
               },
             },
           ],

@@ -4,8 +4,14 @@ import { z } from "zod";
 import { inSessionWorkspace } from "../lib/workspace";
 
 import {
+  STAGE_TO_TOGGLE,
+  emailBodyWithLandingPage,
+  normalizeStageOutput,
+  stageSchemas,
+  writableStageSchema,
+} from "../lib/stage-schemas";
+import {
   normalizeResearchBriefInput,
-  researchBriefSchema,
 } from "../lib/research-brief";
 import { assertRunIsCurrent, rootSessionIdOf } from "../lib/run-guard";
 import {
@@ -17,274 +23,7 @@ import {
 } from "../lib/store";
 import type {
   ContentGenerationOutput,
-  PipelineStage,
-  ToggleableStage,
 } from "../lib/types";
-
-const STAGE_TO_TOGGLE: Partial<Record<PipelineStage, ToggleableStage>> = {
-  qualification: "qualification",
-  hypothesis: "hypothesis",
-  opportunity_mapping: "opportunity_mapping",
-  sequence_planning: "sequence_planning",
-  content_generation: "content_generation",
-};
-
-// The research stage is normally persisted by the researcher subagent via its
-// own save_research_brief tool; this schema stays registered so the foreman
-// can still re-save or repair a research payload if needed.
-const researchSchema = researchBriefSchema;
-
-const qualificationSchema = z.object({
-  scores: z.object({
-    icpFit: z.number().min(0).max(10),
-    buyingAuthority: z.number().min(0).max(10),
-    productUsageOrIntent: z.number().min(0).max(10),
-    engineeringMaturity: z.number().min(0).max(10),
-    companyGrowth: z.number().min(0).max(10),
-    businessImpact: z.number().min(0).max(10),
-    overallPriority: z.number().min(0).max(10),
-  }),
-  verdict: z.enum(["qualified", "disqualified"]),
-  rationale: z.string(),
-});
-
-const hypothesisSchema = z.object({
-  hypotheses: z
-    .array(
-      z.object({
-        statement: z.string(),
-        confidence: z.number().min(0).max(1),
-        evidence: z.array(z.string()),
-        engineeringPain: z.string(),
-        businessImpact: z.string(),
-      }),
-    )
-    .length(2),
-});
-
-const opportunitySchema = z.object({
-  opportunities: z
-    .array(
-      z.object({
-        engineeringPain: z.string(),
-        vercelCapability: z.string(),
-        developerOutcome: z.string(),
-        businessImpact: z.string(),
-        estimatedRoi: z.string(),
-        priority: z.number(),
-      }),
-    )
-    .length(2),
-});
-
-const messagingSchema = z.object({
-  messagingAngle: z.string(),
-  technicalDepth: z.enum(["low", "medium", "high"]),
-  tone: z.string(),
-  story: z.string(),
-  hooks: z.array(z.string()),
-  cta: z.string(),
-  customerExamples: z.array(z.string()),
-  likelyObjections: z.array(z.string()).max(2),
-});
-
-const sequenceSchema = z.object({
-  channels: z.array(z.string()),
-  cadence: z.string(),
-  timing: z.string(),
-  steps: z.array(
-    z.object({
-      channel: z.string(),
-      delayDays: z.number(),
-      purpose: z.string(),
-    }),
-  ),
-  followUpLogic: z.string(),
-  exitConditions: z.array(z.string()),
-});
-
-const sendRecordSchema = z.object({
-  status: z.enum(["drafted", "approved", "denied"]),
-  subject: z.string(),
-  body: z.string(),
-  cta: z.string(),
-  sendWindow: z.object({
-    timezone: z.string(),
-    earliestLocal: z.string(),
-    latestLocal: z.string(),
-    recommendedAt: z.string(),
-  }),
-  approvedAt: z.string().optional(),
-  deniedAt: z.string().optional(),
-});
-
-const contentSchema = z.object({
-  // The messaging strategy decided as the first step of content generation.
-  messagingStrategy: messagingSchema.optional(),
-  subjectLines: z.array(z.string()),
-  emailBody: z
-    .string()
-    .refine((value) => wordCount(value) <= 120, {
-      message: "Email body must be 120 words or fewer.",
-    }),
-  cta: z.string(),
-  objectionResponses: z.array(z.string()).max(2),
-  // Attached by create_landing_page; allowed here so re-saves don't drop it.
-  landingPageSlug: z.string().optional(),
-  landingPageUrl: z.string().optional(),
-  // Attached by send_message; allowed here so re-saves don't drop it.
-  send: sendRecordSchema.optional(),
-});
-
-const intakeSchema = z.object({
-  leadId: z.string(),
-  source: z.string(),
-});
-
-const writableStageSchema = z.enum([
-  "intake",
-  "research",
-  "qualification",
-  "hypothesis",
-  "opportunity_mapping",
-  "sequence_planning",
-  "content_generation",
-]);
-
-type WritableStage = z.infer<typeof writableStageSchema>;
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
-function asText(value: unknown): string | undefined {
-  return typeof value === "string" && value.trim() ? value.trim() : undefined;
-}
-
-function asTextList(value: unknown): string[] {
-  if (!Array.isArray(value)) return [];
-  return value.flatMap((item) => {
-    const text = asText(item);
-    return text ? [text] : [];
-  });
-}
-
-function emailBodyWithLandingPage(body: string, landingPageUrl?: string): string {
-  const trimmedUrl = landingPageUrl?.trim();
-  if (!trimmedUrl || body.includes(trimmedUrl)) return body;
-  if (body.includes("{{landingPageUrl}}")) {
-    return body.replaceAll("{{landingPageUrl}}", trimmedUrl);
-  }
-  return `${body.trim()}\n\nI put together a short page with more detail here: ${trimmedUrl}`;
-}
-
-function wordCount(value: string): number {
-  return value.trim().split(/\s+/).filter(Boolean).length;
-}
-
-function normalizeObjectionResponses(value: unknown): unknown {
-  if (!Array.isArray(value)) return value;
-  return value.map((item) => {
-    const text = asText(item);
-    if (text) return text;
-
-    const record = asRecord(item);
-    if (!record) return item;
-
-    const objection = asText(record.objection);
-    const response = asText(record.response);
-    if (objection && response) return `${objection} ${response}`;
-    return objection ?? response ?? item;
-  });
-}
-
-function normalizeMessagingStrategy(
-  value: unknown,
-  content: Record<string, unknown>,
-): unknown {
-  const fallbackCta = asText(content.cta) ?? "Reply if useful";
-  const fallbackHook =
-    asTextList(content.subjectLines)[0] ?? "Relevant account signal";
-
-  const text = asText(value);
-  if (text) {
-    return {
-      messagingAngle: text,
-      technicalDepth: "medium",
-      tone: "concise, peer-to-peer",
-      story: text,
-      hooks: [fallbackHook],
-      cta: fallbackCta,
-      customerExamples: [],
-      likelyObjections: [],
-    };
-  }
-
-  const record = asRecord(value);
-  if (!record) return value;
-
-  const messagingAngle =
-    asText(record.messagingAngle) ??
-    asText(record.angle) ??
-    asText(record.summary) ??
-    asText(record.story) ??
-    fallbackHook;
-  const technicalDepth = asText(record.technicalDepth);
-
-  return {
-    ...record,
-    messagingAngle,
-    technicalDepth:
-      technicalDepth === "low" ||
-      technicalDepth === "medium" ||
-      technicalDepth === "high"
-        ? technicalDepth
-        : "medium",
-    tone: asText(record.tone) ?? "concise, peer-to-peer",
-    story: asText(record.story) ?? asText(record.summary) ?? messagingAngle,
-    hooks: asTextList(record.hooks).length
-      ? asTextList(record.hooks)
-      : [fallbackHook],
-    cta: asText(record.cta) ?? fallbackCta,
-    customerExamples: asTextList(record.customerExamples),
-    likelyObjections: asTextList(record.likelyObjections),
-  };
-}
-
-function normalizeContentOutput(value: unknown): unknown {
-  const record = asRecord(value);
-  if (!record) return value;
-  return {
-    ...record,
-    messagingStrategy: normalizeMessagingStrategy(
-      record.messagingStrategy,
-      record,
-    ),
-    objectionResponses: normalizeObjectionResponses(record.objectionResponses),
-  };
-}
-
-function normalizeSequenceOutput(value: unknown): unknown {
-  const record = asRecord(value);
-  if (!record) return value;
-  const exitConditionsText = asText(record.exitConditions);
-  if (!exitConditionsText) return value;
-  return {
-    ...record,
-    exitConditions: exitConditionsText
-      .split(/(?:\.\s+|;\s+|\n+)/)
-      .map((item) => item.trim().replace(/\.$/, ""))
-      .filter(Boolean),
-  };
-}
-
-function normalizeStageOutput(stage: WritableStage, output: unknown): unknown {
-  if (stage === "content_generation") return normalizeContentOutput(output);
-  if (stage === "sequence_planning") return normalizeSequenceOutput(output);
-  return output;
-}
 
 export default defineTool({
   description:
@@ -361,15 +100,13 @@ export default defineTool({
         };
       }
 
-      const schemas: Record<WritableStage, z.ZodTypeAny> = {
-        intake: intakeSchema,
-        research: researchSchema,
-        qualification: qualificationSchema,
-        hypothesis: hypothesisSchema,
-        opportunity_mapping: opportunitySchema,
-        sequence_planning: sequenceSchema,
-        content_generation: contentSchema,
-      };
+      if (status === "failed") {
+        const lead = await saveStageOutput(leadId, stage, output, {
+          status: "failed",
+          note: note ?? `Stage ${stage} failed`,
+        });
+        return { ok: true as const, skipped: false as const, lead: leadSummary(lead) };
+      }
 
       const stageOutput = normalizeStageOutput(stage, output);
       const normalizedOutput =
@@ -379,7 +116,7 @@ export default defineTool({
               personName: resolvedLead.name,
             })
           : stageOutput;
-      const parsed = schemas[stage].safeParse(normalizedOutput);
+      const parsed = stageSchemas[stage].safeParse(normalizedOutput);
       if (!parsed.success) {
         return {
           ok: false as const,
@@ -402,13 +139,6 @@ export default defineTool({
             data.emailBody,
             data.landingPageUrl,
           );
-          if (wordCount(data.emailBody) > 120) {
-            return {
-              ok: false as const,
-              error:
-                "Invalid output for stage content_generation: Email body must be 120 words or fewer after the landing page URL is included.",
-            };
-          }
         }
       }
 

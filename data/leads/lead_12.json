@@ -6,14 +6,14 @@
   "companyDomain": "cockroachlabs.com",
   "source": "demo-request",
   "timezone": "America/New_York",
-  "createdAt": "2026-07-05T02:46:23.798Z",
-  "updatedAt": "2026-07-05T02:46:23.803Z",
+  "createdAt": "2026-07-06T12:46:53.829Z",
+  "updatedAt": "2026-07-06T12:46:53.834Z",
   "currentStage": "intake",
   "outcome": "open",
   "stages": {
     "intake": {
       "status": "done",
-      "updatedAt": "2026-07-05T02:46:23.798Z",
+      "updatedAt": "2026-07-06T12:46:53.829Z",
       "output": {
         "leadId": "lead_12",
         "source": "demo-request"
@@ -21,35 +21,35 @@
     },
     "research": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.803Z"
+      "updatedAt": "2026-07-06T12:46:53.834Z"
     },
     "qualification": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.803Z"
+      "updatedAt": "2026-07-06T12:46:53.834Z"
     },
     "hypothesis": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.803Z"
+      "updatedAt": "2026-07-06T12:46:53.834Z"
     },
     "opportunity_mapping": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.803Z"
-    },
-    "sequence_planning": {
-      "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.803Z"
+      "updatedAt": "2026-07-06T12:46:53.834Z"
     },
     "content_generation": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.803Z"
+      "updatedAt": "2026-07-06T12:46:53.834Z"
+    },
+    "sequence_planning": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T12:46:53.834Z"
     },
     "engagement_intent": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.803Z"
+      "updatedAt": "2026-07-06T12:46:53.834Z"
     },
     "learning": {
       "status": "pending",
-      "updatedAt": "2026-07-05T02:46:23.803Z"
+      "updatedAt": "2026-07-06T12:46:53.834Z"
     }
   },
   "engagementEvents": [],
