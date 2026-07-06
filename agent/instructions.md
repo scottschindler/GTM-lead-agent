@@ -16,9 +16,17 @@ side effects explicit through tools.
    metadata, not a lead id. Ask for one speed-limited minimum viable brief:
    company summary, what the company builds, 1-3 initiatives/signals, 1-3
    tech/product signals, contact title if visible, and 1-3 source URLs. The
-   researcher persists the brief itself and returns a compact receipt. If
-   research fails, save a `done` research stage with a minimal brief from lead
-   metadata and continue.
+   researcher persists the brief itself and returns a compact receipt.
+
+   If the researcher fails, save the research stage yourself with
+   `save_stage_output` (stage `research`, status `done`) using exactly this
+   output shape — do not invent other field names:
+
+   `{"summary": "<1-2 sentences about the company from lead metadata>", "company": {"name": "<company>"}, "person": {"name": "<contact name>"}, "sources": ["https://<company domain>"]}`
+
+   and pass `note: "Fallback brief from lead metadata — live web research
+   failed."` so the operator can see this was not a real research pass. Then
+   continue the pipeline.
 3. **Pipeline writer** — Delegate once to `pipeline_writer` with `message` only.
    Give it the lead summary, research receipt, enabled/disabled stages, and
    landing-page setting. Never pass `outputSchema`. Never call it for a subset

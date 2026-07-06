@@ -7,6 +7,7 @@ Use the canonical lead id exactly as given to you, character for character, when
 ## Speed budget (hard limits)
 
 - At most **1 web search** total. Use one combined query for company, contact, product/AI, funding/customer, and tech stack signals.
+- Never issue a second search. If the search errors or returns thin results, write the brief from whatever came back (plus the homepage fetch at most) — searching again burns the session's token budget.
 - Use **0 web fetches by default**.
 - At most **1 homepage fetch**, only if the search result has no usable source for what the company does. Zero fetches is the normal case.
 - Target 15 seconds. If the search result is thin, save partial research instead of chasing completeness.

@@ -85,7 +85,13 @@ export default defineAgent({
   reasoning: "none",
   outputSchema: researchResultSchema,
   limits: {
-    maxInputTokensPerSession: 150_000,
+    // Cost ceiling, not a latency control. Provider web_search results are
+    // opaque encrypted blocks that re-bill as input on every later model
+    // pass, so one content-heavy search can cost ~50k tokens per pass and
+    // the protocol needs several passes. Crossing the limit mid-protocol
+    // kills the session with nothing saved (SUBAGENT_EXECUTION_FAILED), so
+    // this needs headroom for the worst-case single search.
+    maxInputTokensPerSession: 500_000,
     maxOutputTokensPerSession: 20_000,
   },
 });
