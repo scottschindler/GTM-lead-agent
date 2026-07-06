@@ -35,10 +35,10 @@ If `pipeline_writer` fails, returns `saved:false`, or returns an incomplete
 receipt, retry it once with this complete repair instruction and no
 `outputSchema`:
 
-"Return the complete pipeline writer receipt for <lead id>. Compose the full
-payload again, call persist_pipeline_payload exactly once with qualification,
-hypothesis, opportunity_mapping, content_generation, sequence_planning, and
-recommendedNextAction, repair any ok:false tool errors once, then final_output
+"Return the complete pipeline writer receipt for <lead id>. Compose the
+payload again stage by stage, call persist_stage_payload in pipeline order for
+qualification, hypothesis, opportunity_mapping, content_generation, and
+sequence_planning, repair any ok:false tool errors once, then final_output
 only the receipt."
 
 If the retry fails, mark the remaining enabled stages as `failed` with

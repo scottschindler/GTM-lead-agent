@@ -161,7 +161,7 @@ const evalModel = mockModel({
               name: "pipeline_writer",
               input: {
                 message:
-                  "Use the saved compact research for lead_eval_full. Compose the full downstream payload, call persist_pipeline_payload once, and return the compact receipt.",
+                  "Use the saved compact research for lead_eval_full. Compose the downstream payload stage by stage, call persist_stage_payload in pipeline order, and return the compact receipt.",
               },
             },
           ],

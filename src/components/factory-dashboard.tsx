@@ -207,10 +207,32 @@ const STAGE_LIFECYCLE_TYPES = new Set([
   "pipeline.stage.skipped",
 ]);
 
-// Minimum display time per stage transition. persist_pipeline_payload saves
-// all downstream stages in a sub-poll-interval burst; replaying the recorded
-// events with a floor per transition is what makes the walk visible.
+// Minimum display time per stage transition. persist_stage_payload emits a
+// stage's progress and done events back to back (and a refresh can deliver
+// several stages' events in one poll); replaying with a floor per transition
+// keeps the walk readable instead of flashing straight to done.
 const STAGE_REPLAY_TICK_MS = 550;
+
+// The stages pipeline_writer works through, in the order it composes and
+// persists them.
+const DOWNSTREAM_STAGES: PipelineStage[] = [
+  "qualification",
+  "hypothesis",
+  "opportunity_mapping",
+  "content_generation",
+  "sequence_planning",
+];
+
+// Shown in a stage card while the writer is composing that stage — the
+// writer persists stage by stage, so the first pending stage is genuinely
+// the one being worked on. Its real progress/done events replace this line.
+const STAGE_RUNNING_LOGS: Partial<Record<PipelineStage, string>> = {
+  qualification: "Scoring account fit and buying intent",
+  hypothesis: "Turning research into outreach angles",
+  opportunity_mapping: "Matching pains to Vercel capabilities",
+  content_generation: "Drafting the message and personalized page",
+  sequence_planning: "Planning follow-up timing and channels",
+};
 
 function stageForActivityEvent(event: ActivityEvent): PipelineStage | null {
   const detailStage = activityDetailStage(event);
@@ -244,11 +266,6 @@ function stageForActivityEvent(event: ActivityEvent): PipelineStage | null {
     case "create_landing_page":
     case "send_message":
       return "content_generation";
-    case "pipeline_writer":
-      // The writer composes the qualification decision first, so its long
-      // generation window belongs there; per-stage attribution for the rest
-      // arrives via pipeline.stage.* events once it persists.
-      return event.type === "actions.requested" ? "qualification" : null;
     case "save_stage_output": {
       const stage = parseActivityInput(event).stage;
       return typeof stage === "string" && STAGE_ORDER.includes(stage as PipelineStage)
@@ -286,21 +303,32 @@ function StageCard({
   status,
   running,
   liveEvents,
+  syntheticLog,
 }: {
   stage: PipelineStage;
   record: StageRecord;
   status: StageRecord["status"];
   running: boolean;
   liveEvents: ActivityEvent[];
+  syntheticLog?: string;
 }) {
   const [open, setOpen] = useState(false);
 
-  // Follow the spinner: open while this stage is the active one, collapse
-  // when the walk moves on so the next active card has the focus.
+  // Auto-open when this stage starts running and stay open after it
+  // completes, so each stage's output appears as the pipeline progresses
+  // without the operator clicking Show.
   useEffect(() => {
-    const id = window.setTimeout(() => setOpen(running), 0);
+    if (!running) return;
+    const id = window.setTimeout(() => setOpen(true), 0);
     return () => window.clearTimeout(id);
   }, [running]);
+
+  // A stage that returns to pending (reset) has nothing to show — collapse.
+  useEffect(() => {
+    if (running || record.status !== "pending") return;
+    const id = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(id);
+  }, [record.status, running]);
 
   const log = liveEvents.filter(shouldShowLivePipelineEvent).slice(0, 8);
   const expanded = open || running;
@@ -352,7 +380,8 @@ function StageCard({
             </div>
           ) : (
             <p className="text-sm text-[var(--geist-muted)]">
-              Starting {STAGE_LABELS[stage].toLowerCase()}...
+              {syntheticLog ??
+                `Starting ${STAGE_LABELS[stage].toLowerCase()}...`}
             </p>
           )}
         </div>
@@ -544,13 +573,11 @@ export function FactoryDashboard() {
       !localRunExpired);
 
   // ---- Stage replay ----
-  // pipeline.stage.* events are the real per-stage signal from the writer
-  // path, but persist_pipeline_payload emits them in a burst faster than the
-  // poll interval, so rendering them as they land jumps straight to "done".
-  // Replaying the recorded events with a minimum display time per transition
-  // makes the pipeline visibly walk stage by stage without slowing the run.
-  // replayRun outlives runState/clientRun cleanup so the tail of the walk can
-  // finish after the run record clears.
+  // pipeline.stage.* events from persist_stage_payload are the per-stage
+  // truth. Each stage's progress/done pair lands within one poll, so replay
+  // the recorded events with a minimum display time per transition to keep
+  // the walk readable. replayRun outlives runState/clientRun cleanup so the
+  // tail of the walk can finish after the run record clears.
   const selectedLeadId = lead?.id;
   useEffect(() => {
     if (!trackedRunStartedAt || !selectedLeadId) return;
@@ -602,6 +629,23 @@ export function FactoryDashboard() {
     [runEvents],
   );
 
+  const writerCompleted = useMemo(
+    () =>
+      runEvents.some((event) => {
+        if (event.type === "action.result") {
+          return activityTool(event) === "pipeline_writer";
+        }
+        if (event.type !== "subagent.completed") return false;
+        const detail = event.detail;
+        const name =
+          detail && typeof detail === "object" && "subagentName" in detail
+            ? (detail as { subagentName?: unknown }).subagentName
+            : undefined;
+        return typeof name === "string" && name.includes("pipeline_writer");
+      }),
+    [runEvents],
+  );
+
   const displayedCount = Math.min(replayCount, stageTimeline.length);
   const pendingReplay = displayedCount < stageTimeline.length;
 
@@ -626,20 +670,25 @@ export function FactoryDashboard() {
       const stage = activityDetailStage(event);
       if (stage) statuses.set(stage, "pending");
     }
+    const replayLive = isBusy || pendingReplay;
     for (const event of stageTimeline.slice(0, displayedCount)) {
       const stage = activityDetailStage(event);
       if (!stage) continue;
+      if (event.type === "pipeline.stage.progress") {
+        // A progress event with no done/skipped after it means the save is
+        // still in flight (validation failures retry with a fresh progress
+        // event). Show running only while the run presentation is live so a
+        // stage that ultimately failed falls back to its persisted record.
+        if (replayLive) statuses.set(stage, "running");
+        continue;
+      }
       statuses.set(
         stage,
-        event.type === "pipeline.stage.progress"
-          ? "running"
-          : event.type === "pipeline.stage.skipped"
-            ? "skipped"
-            : "done",
+        event.type === "pipeline.stage.skipped" ? "skipped" : "done",
       );
     }
     return statuses;
-  }, [displayedCount, lead, stageTimeline]);
+  }, [displayedCount, isBusy, lead, pendingReplay, stageTimeline]);
 
   // isBusy governs run control; uiBusy keeps the running presentation up
   // until the replayed walk has caught up with reality.
@@ -762,15 +811,34 @@ export function FactoryDashboard() {
     );
     const statusOf = (stage: PipelineStage) =>
       displayStageStatuses.get(stage) ?? stageRecord(lead, stage).status;
-    return (
-      enabledStages.find((stage) => statusOf(stage) === "running") ??
-      (uiBusy
-        ? enabledStages.find((stage) => statusOf(stage) === "pending") ?? null
-        : null) ??
-      enabledStages.find((stage) => statusOf(stage) === "pending") ??
-      null
-    );
-  }, [config, displayStageStatuses, lead, uiBusy]);
+    const running = enabledStages.find((stage) => statusOf(stage) === "running");
+    if (running) return running;
+    const firstPending =
+      enabledStages.find((stage) => statusOf(stage) === "pending") ?? null;
+    // Disqualified early-exit: the writer finished, its recorded walk is
+    // fully displayed, and it never touched this downstream stage — the
+    // pipeline is winding down, so don't spin up a stage that won't run.
+    if (
+      firstPending &&
+      writerCompleted &&
+      !pendingReplay &&
+      stageTimeline.length > 0 &&
+      DOWNSTREAM_STAGES.includes(firstPending) &&
+      !stageTimeline.some(
+        (event) => activityDetailStage(event) === firstPending,
+      )
+    ) {
+      return null;
+    }
+    return firstPending;
+  }, [
+    config,
+    displayStageStatuses,
+    lead,
+    pendingReplay,
+    stageTimeline,
+    writerCompleted,
+  ]);
 
   async function runPipeline() {
     if (
@@ -1012,7 +1080,9 @@ export function FactoryDashboard() {
           </div>
           {STAGE_ORDER.map((stage) => (
             <StageCard
-              key={stage}
+              // Keyed by lead so switching leads remounts the cards closed
+              // instead of carrying over the previous lead's open state.
+              key={`${lead.id}:${stage}`}
               stage={stage}
               record={stageRecord(lead, stage)}
               status={
@@ -1021,6 +1091,7 @@ export function FactoryDashboard() {
               }
               running={uiBusy && stage === activeStage}
               liveEvents={stageEvents.get(stage) ?? []}
+              syntheticLog={STAGE_RUNNING_LOGS[stage]}
             />
           ))}
         </section>

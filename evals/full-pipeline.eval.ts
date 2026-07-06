@@ -10,7 +10,7 @@ import type {
 
 export default defineEval({
   description:
-    "fast full-pipeline path uses researcher and pipeline_writer, saves 2/2 strategy outputs, queues a draft, and does not run learning.",
+    "sequential full-pipeline path uses researcher and pipeline_writer, persists each strategy stage in pipeline order, queues a draft, and does not run learning.",
   async test(t) {
     const startedAt = Date.now();
     const activitySince = new Date(startedAt - 1000).toISOString();
@@ -59,7 +59,7 @@ export default defineEval({
         event.detail && typeof event.detail === "object"
           ? (event.detail as Record<string, unknown>)
           : {};
-      return detail.source === "persist_pipeline_payload" &&
+      return detail.source === "persist_stage_payload" &&
         typeof detail.stage === "string"
         ? [detail.stage]
         : [];

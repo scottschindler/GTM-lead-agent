@@ -24,6 +24,7 @@
 
 # local factory runtime artifacts
 /data/activity.jsonl
+/data/landing-pages/
 /data/leads/lead_eval_*.json
 /data/insights.json
 /data/run-state.json

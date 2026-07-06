@@ -857,23 +857,78 @@ export const stageSchemas: Record<WritableStage, z.ZodTypeAny> = {
   content_generation: contentSchema,
 };
 
+// Outreach emails must stay skimmable; a hard ceiling (with headroom over the
+// 110-word instruction target) turns an essay into one schema retry instead
+// of a BDR rewrite.
+const MAX_EMAIL_BODY_WORDS = 120;
+
+export const writerContentSchema = z.object({
+  messagingStrategy: messagingSchema,
+  landingPage: landingPagePayloadSchema,
+  subjectLines: z.array(textSchema).min(1).max(4),
+  emailBody: textSchema.refine(
+    (body) => wordCount(body) <= MAX_EMAIL_BODY_WORDS,
+    {
+      message: `email body is too long; rewrite it as 4-7 short sentences totaling at most 110 words, keeping {{landingPageUrl}} exactly once`,
+    },
+  ),
+  cta: textSchema,
+  objectionResponses: z.array(textSchema).max(3),
+});
+
+export type WriterContentPayload = z.infer<typeof writerContentSchema>;
+
 export const pipelineWriterOutputSchema = z.preprocess(
   normalizePipelineWriterPayload,
   z.object({
     qualification: qualificationSchema,
     hypothesis: hypothesisSchema,
     opportunity_mapping: opportunitySchema,
-    content_generation: z.object({
-      messagingStrategy: messagingSchema,
-      landingPage: landingPagePayloadSchema,
-      subjectLines: z.array(textSchema).min(1).max(4),
-      emailBody: textSchema,
-      cta: textSchema,
-      objectionResponses: z.array(textSchema).max(3),
-    }),
+    content_generation: writerContentSchema,
     sequence_planning: sequenceSchema,
     recommendedNextAction: textSchema,
   }),
 );
 
 export type PipelineWriterOutput = z.infer<typeof pipelineWriterOutputSchema>;
+
+// The stages pipeline_writer persists, in required pipeline order.
+export const WRITER_STAGES = [
+  "qualification",
+  "hypothesis",
+  "opportunity_mapping",
+  "content_generation",
+  "sequence_planning",
+] as const;
+
+export type WriterStage = (typeof WRITER_STAGES)[number];
+
+export type WriterStageParseResult =
+  | { success: true; data: unknown }
+  | { success: false; error: z.ZodError };
+
+// Normalize-then-validate one writer stage payload. `opportunities` feeds the
+// landing-page fallback content when parsing content_generation; pass the
+// persisted opportunity_mapping output.
+export function parseWriterStagePayload(
+  stage: WriterStage,
+  output: unknown,
+  context?: { opportunities?: unknown },
+): WriterStageParseResult {
+  switch (stage) {
+    case "qualification":
+      return qualificationSchema.safeParse(
+        normalizeQualificationPayload(output),
+      );
+    case "hypothesis":
+      return hypothesisSchema.safeParse(normalizeHypothesisPayload(output));
+    case "opportunity_mapping":
+      return opportunitySchema.safeParse(normalizeOpportunityPayload(output));
+    case "content_generation":
+      return writerContentSchema.safeParse(
+        normalizePipelineContentPayload(output, context?.opportunities),
+      );
+    case "sequence_planning":
+      return sequenceSchema.safeParse(normalizePipelineSequencePayload(output));
+  }
+}
