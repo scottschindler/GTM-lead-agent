@@ -39,14 +39,14 @@ import {
   type DemoJourneyEventKind,
 } from "../lib/demo-complete";
 import {
-  COCKROACH_INTAKE,
-  COCKROACH_MESSAGING,
-  COCKROACH_OPPORTUNITIES,
-  COCKROACH_QUALIFICATION,
-  COCKROACH_RESEARCH,
-  REPLIT_INTAKE,
-  REPLIT_QUALIFICATION,
-  REPLIT_RESEARCH,
+  CURSOR_INTAKE,
+  CURSOR_QUALIFICATION,
+  CURSOR_RESEARCH,
+  GRAFANA_INTAKE,
+  GRAFANA_MESSAGING,
+  GRAFANA_OPPORTUNITIES,
+  GRAFANA_QUALIFICATION,
+  GRAFANA_RESEARCH,
 } from "../lib/demo-needs-review";
 import { STAGE_LABELS, STAGE_ORDER, STRIP_STAGE_LABELS } from "../lib/pipeline";
 import { withDemoLeads } from "../lib/review-queue";
@@ -343,18 +343,18 @@ const PIPELINE_STEP_STYLE: Record<
 // Completed (and in-review) steps carry the stage's saved output so the
 // salesperson can click each chip and see exactly what the agent produced.
 const QUALIFICATION_PIPELINE: ReviewPipelineStep[] = [
-  { label: "Intake", state: "done", stage: "intake", output: REPLIT_INTAKE },
+  { label: "Intake", state: "done", stage: "intake", output: CURSOR_INTAKE },
   {
     label: "Research",
     state: "done",
     stage: "research",
-    output: REPLIT_RESEARCH,
+    output: CURSOR_RESEARCH,
   },
   {
     label: "Qualification",
     state: "current",
     stage: "qualification",
-    output: REPLIT_QUALIFICATION,
+    output: CURSOR_QUALIFICATION,
   },
   { label: "Opportunity", state: "future" },
   { label: "Messaging", state: "future" },
@@ -363,30 +363,30 @@ const QUALIFICATION_PIPELINE: ReviewPipelineStep[] = [
 ];
 
 const MESSAGING_PIPELINE: ReviewPipelineStep[] = [
-  { label: "Intake", state: "done", stage: "intake", output: COCKROACH_INTAKE },
+  { label: "Intake", state: "done", stage: "intake", output: GRAFANA_INTAKE },
   {
     label: "Research",
     state: "done",
     stage: "research",
-    output: COCKROACH_RESEARCH,
+    output: GRAFANA_RESEARCH,
   },
   {
     label: "Qualification",
     state: "done",
     stage: "qualification",
-    output: COCKROACH_QUALIFICATION,
+    output: GRAFANA_QUALIFICATION,
   },
   {
     label: "Opportunity",
     state: "done",
     stage: "opportunity_mapping",
-    output: COCKROACH_OPPORTUNITIES,
+    output: GRAFANA_OPPORTUNITIES,
   },
   {
     label: "Messaging",
     state: "current",
     stage: "content_generation",
-    output: { messagingStrategy: COCKROACH_MESSAGING },
+    output: { messagingStrategy: GRAFANA_MESSAGING },
   },
   { label: "Sequence", state: "future" },
   { label: "Draft", state: "future" },
@@ -1020,8 +1020,8 @@ function buildNeedsReviewCards(sendItem: ReviewItem): PipelineReviewCard[] {
     {
       id: "demo-qualification-review",
       kind: "qualification",
-      leadName: "Amjad Masad",
-      company: "Replit",
+      leadName: "Michael Truell",
+      company: "Cursor",
       source: "product-signup",
       currentStage: "Qualification review",
       blockedBy: "High-value executive account",
@@ -1029,7 +1029,7 @@ function buildNeedsReviewCards(sendItem: ReviewItem): PipelineReviewCard[] {
         "The agent found a strong ICP fit and an executive contact. Configure requires human confirmation before spending more agent work on strategic accounts.",
       completedActions: [
         "Captured lead from product signup and normalized the company domain.",
-        "Researched Replit's AI coding agent motion and developer audience.",
+        "Researched Cursor's AI coding agent motion and developer audience.",
         "Scored the account 8.1 overall with strong engineering maturity and buying-authority signals.",
       ],
       nextRequiredAction:
@@ -1050,8 +1050,8 @@ function buildNeedsReviewCards(sendItem: ReviewItem): PipelineReviewCard[] {
     {
       id: "demo-messaging-review",
       kind: "messaging",
-      leadName: "Spencer Kimball",
-      company: "Cockroach Labs",
+      leadName: "Raj Dutt",
+      company: "Grafana Labs",
       source: "demo-request",
       currentStage: "Messaging review",
       blockedBy: "Executive touch plus strategic positioning",
