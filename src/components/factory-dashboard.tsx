@@ -167,6 +167,99 @@ function stageIsSettled(record: StageRecord): boolean {
   return record.status !== "pending" && record.status !== "running";
 }
 
+function activityTool(event: ActivityEvent): string | undefined {
+  const detail = event.detail;
+  if (!detail || typeof detail !== "object" || !("tool" in detail)) return;
+  const tool = (detail as { tool?: unknown }).tool;
+  return typeof tool === "string" ? tool : undefined;
+}
+
+function parseActivityInput(event: ActivityEvent): Record<string, unknown> {
+  const detail = event.detail;
+  if (!detail || typeof detail !== "object" || !("input" in detail)) return {};
+  const input = (detail as { input?: unknown }).input;
+  if (input && typeof input === "object") return input as Record<string, unknown>;
+  if (typeof input !== "string") return {};
+  try {
+    const parsed = JSON.parse(input);
+    return parsed && typeof parsed === "object"
+      ? (parsed as Record<string, unknown>)
+      : {};
+  } catch {
+    return {};
+  }
+}
+
+function activityDetailStage(event: ActivityEvent): PipelineStage | null {
+  const detail = event.detail;
+  if (!detail || typeof detail !== "object" || !("stage" in detail)) return null;
+  const stage = (detail as { stage?: unknown }).stage;
+  return typeof stage === "string" && STAGE_ORDER.includes(stage as PipelineStage)
+    ? (stage as PipelineStage)
+    : null;
+}
+
+// The persist tool emits these with detail.stage as it saves each downstream
+// stage — the only real per-stage signal the writer path produces.
+const STAGE_LIFECYCLE_TYPES = new Set([
+  "pipeline.stage.progress",
+  "pipeline.stage.done",
+  "pipeline.stage.skipped",
+]);
+
+// Minimum display time per stage transition. persist_pipeline_payload saves
+// all downstream stages in a sub-poll-interval burst; replaying the recorded
+// events with a floor per transition is what makes the walk visible.
+const STAGE_REPLAY_TICK_MS = 550;
+
+function stageForActivityEvent(event: ActivityEvent): PipelineStage | null {
+  const detailStage = activityDetailStage(event);
+  if (detailStage) return detailStage;
+
+  const tool = activityTool(event);
+  if (!tool) {
+    if (event.type === "subagent.completed") {
+      const detail = event.detail;
+      const subagentName =
+        detail && typeof detail === "object" && "subagentName" in detail
+          ? (detail as { subagentName?: unknown }).subagentName
+          : undefined;
+      return typeof subagentName === "string" &&
+        subagentName.toLowerCase().includes("research")
+        ? "research"
+        : null;
+    }
+    return null;
+  }
+
+  switch (tool) {
+    case "get_lead":
+    case "create_lead":
+      return "intake";
+    case "researcher":
+    case "web_search":
+    case "web_fetch":
+    case "save_research_brief":
+      return "research";
+    case "create_landing_page":
+    case "send_message":
+      return "content_generation";
+    case "pipeline_writer":
+      // The writer composes the qualification decision first, so its long
+      // generation window belongs there; per-stage attribution for the rest
+      // arrives via pipeline.stage.* events once it persists.
+      return event.type === "actions.requested" ? "qualification" : null;
+    case "save_stage_output": {
+      const stage = parseActivityInput(event).stage;
+      return typeof stage === "string" && STAGE_ORDER.includes(stage as PipelineStage)
+        ? (stage as PipelineStage)
+        : null;
+    }
+    default:
+      return null;
+  }
+}
+
 function leadPipelineSettled(lead: Lead, config: PipelineConfig): boolean {
   if (lead.outcome !== "open") return true;
   return STAGE_ORDER.filter((stage) => stageEnabled(stage, config)).every(
@@ -174,45 +267,42 @@ function leadPipelineSettled(lead: Lead, config: PipelineConfig): boolean {
   );
 }
 
-function leadHasNewPipelineWrite(
-  previous: Lead,
-  next: Lead,
+function leadHasPipelineWriteSince(
+  lead: Lead,
   config: PipelineConfig,
+  startedAt?: string,
 ): boolean {
+  if (!startedAt) return false;
   return STAGE_ORDER.some((stage) => {
     if (stage === "intake" || !stageEnabled(stage, config)) return false;
-    const previousRecord = stageRecord(previous, stage);
-    const nextRecord = stageRecord(next, stage);
-    return (
-      nextRecord.status !== "pending" &&
-      (nextRecord.status !== previousRecord.status ||
-        nextRecord.updatedAt !== previousRecord.updatedAt)
-    );
+    const record = stageRecord(lead, stage);
+    return record.status !== "pending" && record.updatedAt >= startedAt;
   });
 }
 
 function StageCard({
   stage,
   record,
+  status,
   running,
   liveEvents,
 }: {
   stage: PipelineStage;
   record: StageRecord;
+  status: StageRecord["status"];
   running: boolean;
   liveEvents: ActivityEvent[];
 }) {
   const [open, setOpen] = useState(false);
 
+  // Follow the spinner: open while this stage is the active one, collapse
+  // when the walk moves on so the next active card has the focus.
   useEffect(() => {
-    if (!running) return;
-    const id = window.setTimeout(() => setOpen(true), 0);
+    const id = window.setTimeout(() => setOpen(running), 0);
     return () => window.clearTimeout(id);
   }, [running]);
 
-  const log = running
-    ? liveEvents.filter(shouldShowLivePipelineEvent).slice(0, 8)
-    : [];
+  const log = liveEvents.filter(shouldShowLivePipelineEvent).slice(0, 8);
   const expanded = open || running;
 
   return (
@@ -231,7 +321,7 @@ function StageCard({
           ) : (
             <span
               className="inline-block h-2.5 w-2.5 rounded-full"
-              style={{ background: statusColor(record.status) }}
+              style={{ background: statusColor(status) }}
             />
           )}
           <div>
@@ -242,27 +332,48 @@ function StageCard({
           {expanded ? "Hide" : "Show"}
         </span>
       </button>
-      {running && log.length > 0 ? (
+      {running ? (
         <div className="border-t border-[var(--geist-border)] px-4 py-3">
           <div className="mb-2 text-[11px] uppercase tracking-wide text-[var(--geist-muted)]">
             progress
           </div>
-          <div className="space-y-2">
-            {log.map((event) => (
-              <div key={event.id}>
-                <div className="text-sm">
+          {log.length > 0 ? (
+            <div className="space-y-2">
+              {log.map((event) => (
+                <div key={event.id}>
+                  <div className="text-sm">
+                    <span className="text-[11px] text-[var(--geist-muted)]">
+                      {new Date(event.timestamp).toLocaleTimeString()}
+                    </span>{" "}
+                    {humanizeActivitySummary(event)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-[var(--geist-muted)]">
+              Starting {STAGE_LABELS[stage].toLowerCase()}...
+            </p>
+          )}
+        </div>
+      ) : null}
+      {open && !running ? (
+        <div className="border-t border-[var(--geist-border)] px-4 py-3">
+          {log.length > 0 ? (
+            <div className="mb-3 space-y-2">
+              <div className="text-[11px] uppercase tracking-wide text-[var(--geist-muted)]">
+                progress
+              </div>
+              {log.map((event) => (
+                <div key={event.id} className="text-sm">
                   <span className="text-[11px] text-[var(--geist-muted)]">
                     {new Date(event.timestamp).toLocaleTimeString()}
                   </span>{" "}
                   {humanizeActivitySummary(event)}
                 </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
-      {open && !running ? (
-        <div className="border-t border-[var(--geist-border)] px-4 py-3">
+              ))}
+            </div>
+          ) : null}
           {record.note ? (
             <p className="mb-2 text-sm text-[var(--geist-muted)]">{record.note}</p>
           ) : null}
@@ -308,6 +419,11 @@ export function FactoryDashboard() {
   const [activity, setActivity] = useState<ActivityEvent[]>([]);
   const [runState, setRunState] = useState<PipelineRunState | null>(null);
   const [clientRun, setClientRun] = useState<PipelineActiveRun | null>(null);
+  const [replayRun, setReplayRun] = useState<{
+    leadId: string;
+    startedAt: string;
+  } | null>(null);
+  const [replayCount, setReplayCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   // Surface turn failures even when nothing awaits them (e.g. the stream
@@ -402,6 +518,10 @@ export function FactoryDashboard() {
     : clientRunActiveForSelectedLead
       ? clientRunStartedAt
       : undefined;
+  const selectedLeadHasRunWrite =
+    lead && config
+      ? leadHasPipelineWriteSince(lead, config, trackedRunStartedAt)
+      : false;
 
   // The eve client stream can desync from the server, leaving `agent.status`
   // pinned on "streaming" after the turn finished. Treat server lifecycle
@@ -423,6 +543,108 @@ export function FactoryDashboard() {
       !selectedLeadSettled &&
       !localRunExpired);
 
+  // ---- Stage replay ----
+  // pipeline.stage.* events are the real per-stage signal from the writer
+  // path, but persist_pipeline_payload emits them in a burst faster than the
+  // poll interval, so rendering them as they land jumps straight to "done".
+  // Replaying the recorded events with a minimum display time per transition
+  // makes the pipeline visibly walk stage by stage without slowing the run.
+  // replayRun outlives runState/clientRun cleanup so the tail of the walk can
+  // finish after the run record clears.
+  const selectedLeadId = lead?.id;
+  useEffect(() => {
+    if (!trackedRunStartedAt || !selectedLeadId) return;
+    const id = window.setTimeout(() => {
+      setReplayRun((current) =>
+        current?.leadId === selectedLeadId &&
+        current.startedAt === trackedRunStartedAt
+          ? current
+          : { leadId: selectedLeadId, startedAt: trackedRunStartedAt },
+      );
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [selectedLeadId, trackedRunStartedAt]);
+
+  const replayKey = replayRun
+    ? `${replayRun.leadId}:${replayRun.startedAt}`
+    : "";
+  useEffect(() => {
+    const id = window.setTimeout(() => setReplayCount(0), 0);
+    return () => window.clearTimeout(id);
+  }, [replayKey]);
+
+  const replayFollowsSelectedLead = replayRun?.leadId === selectedLeadId;
+  const runEvents = useMemo(() => {
+    const startedAt =
+      trackedRunStartedAt ??
+      (replayFollowsSelectedLead ? replayRun?.startedAt : undefined);
+    if (!startedAt) return [];
+    return activity.filter((event) => event.timestamp >= startedAt);
+  }, [
+    activity,
+    replayFollowsSelectedLead,
+    replayRun?.startedAt,
+    trackedRunStartedAt,
+  ]);
+
+  // Chronological stage-lifecycle events for this run (activity is stored
+  // newest-first in state).
+  const stageTimeline = useMemo(
+    () =>
+      runEvents
+        .slice()
+        .reverse()
+        .filter(
+          (event) =>
+            STAGE_LIFECYCLE_TYPES.has(event.type) &&
+            activityDetailStage(event) !== null,
+        ),
+    [runEvents],
+  );
+
+  const displayedCount = Math.min(replayCount, stageTimeline.length);
+  const pendingReplay = displayedCount < stageTimeline.length;
+
+  useEffect(() => {
+    if (!pendingReplay) return;
+    const id = window.setTimeout(
+      () => setReplayCount((count) => count + 1),
+      STAGE_REPLAY_TICK_MS,
+    );
+    return () => window.clearTimeout(id);
+  }, [displayedCount, pendingReplay]);
+
+  const displayStageStatuses = useMemo(() => {
+    const statuses = new Map<PipelineStage, StageRecord["status"]>();
+    if (!lead) return statuses;
+    for (const stage of STAGE_ORDER) {
+      statuses.set(stage, stageRecord(lead, stage).status);
+    }
+    // A stage the replay hasn't reached yet stays visually pending even if
+    // its persisted record already settled.
+    for (const event of stageTimeline.slice(displayedCount)) {
+      const stage = activityDetailStage(event);
+      if (stage) statuses.set(stage, "pending");
+    }
+    for (const event of stageTimeline.slice(0, displayedCount)) {
+      const stage = activityDetailStage(event);
+      if (!stage) continue;
+      statuses.set(
+        stage,
+        event.type === "pipeline.stage.progress"
+          ? "running"
+          : event.type === "pipeline.stage.skipped"
+            ? "skipped"
+            : "done",
+      );
+    }
+    return statuses;
+  }, [displayedCount, lead, stageTimeline]);
+
+  // isBusy governs run control; uiBusy keeps the running presentation up
+  // until the replayed walk has caught up with reality.
+  const uiBusy = isBusy || pendingReplay;
+
   const shouldClearClientRun =
     Boolean(clientRunLeadId) &&
     (serverActiveLeadId === clientRunLeadId ||
@@ -438,6 +660,22 @@ export function FactoryDashboard() {
     return () => window.clearTimeout(id);
   }, [shouldClearClientRun]);
 
+  useEffect(() => {
+    if (
+      !trackedRunTerminal ||
+      selectedLeadSettled ||
+      selectedLeadHasRunWrite
+    ) {
+      return;
+    }
+    const id = window.setTimeout(() => {
+      setError(
+        "Pipeline run ended before any stage updated. The agent did not produce tool activity, so no pipeline output was saved.",
+      );
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [selectedLeadHasRunWrite, selectedLeadSettled, trackedRunTerminal]);
+
   // If the server or lead state says the turn ended but the client stream did
   // not close, abort the stale stream so a new run can start.
   useEffect(() => {
@@ -447,13 +685,21 @@ export function FactoryDashboard() {
   }, [trackedRunTerminal, selectedLeadSettled, agentBusy, stopAgent]);
 
   useEffect(() => {
-    if (!agentBusy && !runState?.activeRun && !clientRun) return;
+    if (!agentBusy && !runState?.activeRun && !clientRun && !pendingReplay)
+      return;
     const id = window.setInterval(() => {
       void refreshLeads();
       void refreshActivity();
     }, 1500);
     return () => window.clearInterval(id);
-  }, [agentBusy, clientRun, refreshActivity, refreshLeads, runState?.activeRun]);
+  }, [
+    agentBusy,
+    clientRun,
+    pendingReplay,
+    refreshActivity,
+    refreshLeads,
+    runState?.activeRun,
+  ]);
 
   const canRunActiveLead =
     lead?.outcome === "open" &&
@@ -488,53 +734,43 @@ export function FactoryDashboard() {
     [agent.data.messages],
   );
 
-  // While the agent is busy, an explicitly running stage is authoritative.
-  // Otherwise, the first stage with no result yet is the one being worked on.
+  const stageEvents = useMemo(() => {
+    const displayedIds = new Set(
+      stageTimeline.slice(0, displayedCount).map((event) => event.id),
+    );
+    const byStage = new Map<PipelineStage, ActivityEvent[]>();
+    for (const event of runEvents) {
+      // Hold back stage-lifecycle events the replay hasn't shown yet so a
+      // card's log can't announce completion before its spinner arrives.
+      if (STAGE_LIFECYCLE_TYPES.has(event.type) && !displayedIds.has(event.id))
+        continue;
+      const stage = stageForActivityEvent(event);
+      if (!stage || !config || !stageEnabled(stage, config)) continue;
+      byStage.set(stage, [...(byStage.get(stage) ?? []), event]);
+    }
+    return byStage;
+  }, [config, displayedCount, runEvents, stageTimeline]);
+
+  // The spinner follows the replayed stage-lifecycle events once the writer
+  // starts persisting. Before that (the writer's long composition window) no
+  // stage events exist yet, so the first unsettled record — qualification,
+  // which the writer composes first — holds it.
   const activeStage = useMemo<PipelineStage | null>(() => {
     if (!lead || !config) return null;
     const enabledStages = STAGE_ORDER.filter((stage) =>
       stageEnabled(stage, config),
     );
+    const statusOf = (stage: PipelineStage) =>
+      displayStageStatuses.get(stage) ?? stageRecord(lead, stage).status;
     return (
-      enabledStages.find(
-        (stage) => stageRecord(lead, stage).status === "running",
-      ) ??
-      enabledStages.find(
-        (stage) => stageRecord(lead, stage).status === "pending",
-      ) ?? null
+      enabledStages.find((stage) => statusOf(stage) === "running") ??
+      (uiBusy
+        ? enabledStages.find((stage) => statusOf(stage) === "pending") ?? null
+        : null) ??
+      enabledStages.find((stage) => statusOf(stage) === "pending") ??
+      null
     );
-  }, [config, lead]);
-
-  // Events newer than the latest completed stage belong to the active stage.
-  // When a server run is active, use its start time as a lower bound too so
-  // stale events from a previous reset/killed run cannot bleed into this one.
-  const activeStageEvents = useMemo(() => {
-    if (!lead) return [];
-    const lastStageWrite = STAGE_ORDER.reduce((latest, stage) => {
-      const record = stageRecord(lead, stage);
-      return record.status !== "pending" && record.updatedAt > latest
-        ? record.updatedAt
-        : latest;
-    }, "");
-    const runStartedAt = runState?.activeRun?.startedAt ?? "";
-    const clientStartedAt =
-      clientRunActiveForSelectedLead && clientRunStartedAt
-        ? clientRunStartedAt
-        : "";
-    const boundary =
-      runStartedAt && runStartedAt > lastStageWrite
-        ? runStartedAt
-        : clientStartedAt && clientStartedAt > lastStageWrite
-          ? clientStartedAt
-          : lastStageWrite;
-    return activity.filter((event) => event.timestamp > boundary);
-  }, [
-    activity,
-    clientRunActiveForSelectedLead,
-    clientRunStartedAt,
-    lead,
-    runState?.activeRun?.startedAt,
-  ]);
+  }, [config, displayStageStatuses, lead, uiBusy]);
 
   async function runPipeline() {
     if (
@@ -552,20 +788,10 @@ export function FactoryDashboard() {
     setClientRun({ leadId: lead.id, startedAt: new Date().toISOString() });
     try {
       await agent.send({ message: buildRunMessage(lead, config) });
-      const [refreshedLeads] = await Promise.all([
+      await Promise.all([
         refreshLeads(),
         refreshActivity(),
       ]);
-      const refreshedLead = refreshedLeads.find((item) => item.id === lead.id);
-      if (
-        refreshedLead &&
-        !leadHasNewPipelineWrite(lead, refreshedLead, config) &&
-        !leadPipelineSettled(refreshedLead, config)
-      ) {
-        setError(
-          "Pipeline run ended before any stage updated. The agent did not produce tool activity, so no pipeline output was saved.",
-        );
-      }
     } catch (err) {
       setClientRun(null);
       setError(describeAgentError(err));
@@ -585,6 +811,8 @@ export function FactoryDashboard() {
     runSubmittingRef.current = false;
     setRunSubmitting(false);
     setClientRun(null);
+    setReplayRun(null);
+    setReplayCount(0);
     agent.reset();
     try {
       const response = await fetch("/api/reset", { method: "POST" });
@@ -628,7 +856,7 @@ export function FactoryDashboard() {
     );
   }
 
-  const runLabel = isBusy
+  const runLabel = uiBusy
     ? "Running…"
     : lead && canRunActiveLead
       ? "Run pipeline"
@@ -665,7 +893,7 @@ export function FactoryDashboard() {
             ) : null}
             <button
               type="button"
-              disabled={isBusy || !canRunActiveLead}
+              disabled={uiBusy || !canRunActiveLead}
               onClick={() => void runPipeline()}
               className="geist-btn geist-btn-primary"
             >
@@ -776,7 +1004,7 @@ export function FactoryDashboard() {
         <section className="grid gap-3">
           <div className="flex items-center gap-2 text-sm font-medium">
             Pipeline stages
-            {isBusy ? (
+            {uiBusy ? (
               <span className="flex items-center gap-1.5 text-xs text-[var(--geist-muted)]">
                 <Spinner /> pipeline running
               </span>
@@ -787,8 +1015,12 @@ export function FactoryDashboard() {
               key={stage}
               stage={stage}
               record={stageRecord(lead, stage)}
-              running={isBusy && stage === activeStage}
-              liveEvents={stage === activeStage ? activeStageEvents : []}
+              status={
+                displayStageStatuses.get(stage) ??
+                stageRecord(lead, stage).status
+              }
+              running={uiBusy && stage === activeStage}
+              liveEvents={stageEvents.get(stage) ?? []}
             />
           ))}
         </section>
