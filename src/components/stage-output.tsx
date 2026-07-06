@@ -163,27 +163,38 @@ type ResearchData = {
     industry?: string;
     employeeCount?: string;
     funding?: string;
+    hiringActivity?: string;
     techStack?: string[];
     recentNews?: string[];
     growthSignals?: string[];
+    sources?: string[];
   };
   person?: {
     name?: string;
     title?: string;
+    team?: string;
     seniority?: string;
     technicalBackground?: string;
     decisionMakingAuthority?: string;
+    sources?: string[];
   };
   initiatives?: string[];
+  productLaunches?: string[];
   aiInitiatives?: string[];
   priorities?: string[];
   summary?: string;
+  vercelAngle?: string;
   sources?: string[];
 };
 
 function ResearchView({ data }: { data: ResearchData }) {
   const company = data.company ?? {};
   const person = data.person ?? {};
+  const allSources = [
+    ...(data.sources ?? []),
+    ...(company.sources ?? []),
+    ...(person.sources ?? []),
+  ];
   const hasSubstantiveResearch =
     hasText(data.summary) ||
     hasText(company.industry) ||
@@ -217,6 +228,7 @@ function ResearchView({ data }: { data: ResearchData }) {
           <Fact label="Industry" value={company.industry} />
           <Fact label="Employees" value={company.employeeCount} />
           <Fact label="Funding" value={company.funding} />
+          <Fact label="Hiring" value={company.hiringActivity} />
           {(company.techStack ?? []).length > 0 ? (
             <Section label="Tech stack">
               <Chips items={company.techStack ?? []} />
@@ -228,6 +240,7 @@ function ResearchView({ data }: { data: ResearchData }) {
           <Label>Contact</Label>
           <Fact label="Name" value={person.name} />
           <Fact label="Title" value={person.title} />
+          <Fact label="Team" value={person.team} />
           <Fact label="Seniority" value={person.seniority} />
           <Fact label="Technical background" value={person.technicalBackground} />
           <Fact label="Decision authority" value={person.decisionMakingAuthority} />
@@ -249,6 +262,11 @@ function ResearchView({ data }: { data: ResearchData }) {
           <Bullets items={data.initiatives ?? []} />
         </Section>
       ) : null}
+      {(data.productLaunches ?? []).length > 0 ? (
+        <Section label="Product launches">
+          <Bullets items={data.productLaunches ?? []} />
+        </Section>
+      ) : null}
       {(data.aiInitiatives ?? []).length > 0 ? (
         <Section label="AI initiatives">
           <Bullets items={data.aiInitiatives ?? []} />
@@ -259,9 +277,16 @@ function ResearchView({ data }: { data: ResearchData }) {
           <Bullets items={data.priorities ?? []} />
         </Section>
       ) : null}
-      {(data.sources ?? []).length > 0 ? (
+      {data.vercelAngle ? (
+        <Section label="Why Vercel fits">
+          <p className="rounded-[8px] border-l-2 border-[var(--geist-success)] bg-[var(--geist-subtle)] px-3 py-2 text-sm">
+            {data.vercelAngle}
+          </p>
+        </Section>
+      ) : null}
+      {allSources.length > 0 ? (
         <Section label="Sources">
-          <SourceLinks urls={data.sources ?? []} />
+          <SourceLinks urls={Array.from(new Set(allSources))} />
         </Section>
       ) : null}
     </div>

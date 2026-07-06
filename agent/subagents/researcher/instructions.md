@@ -23,15 +23,22 @@ Use the canonical lead id exactly as given to you, character for character, when
    - `person`: use the lead's contact name if title/background is unknown.
    The saved brief must include at least one source URL and must not be sources-only: include a non-empty summary or at least one visible company/contact detail such as industry, employee count, funding, title, seniority, tech stack, initiatives, AI initiatives, or priorities. If `save_research_brief` returns `ok: false`, fix the payload once and retry with the canonical lead id; do not retry the same invalid payload and do not ask the user.
 
-Focus only on what downstream stages need:
+Focus only on what downstream stages need. Fill every brief field the single
+search already answered — writing down what you found costs no extra research
+time:
 
-- company summary / what the company builds
-- 1-3 current initiatives or signals
-- 1-3 tech/product signals
-- contact title only if visible in the search results
-- 1-3 source URLs
+- `summary`: always write 2-3 sentences on what the company builds and where
+  it is heading. This is the one field that must not be empty.
+- `initiatives` / `aiInitiatives`: 1-3 current initiatives or signals.
+- `company.techStack`: 1-3 tech/product signals.
+- `company.recentNews` / `company.growthSignals`: only if visible in the
+  search results — funding, launches, growth numbers.
+- `person.title`, `person.technicalBackground`: only if visible.
+- `vercelAngle`: 1-2 sentences on why this account is relevant for Vercel,
+  grounded in the signals above — the buyer-facing "so what" of the brief.
+- `sources`: 1-3 source URLs.
 
-Skip competitors, hiring pages, deep news archives, architecture history, LinkedIn/person-background chasing, and deep tech-stack inference. Include funding, employee count, or recent news only if visible in the first search results. Unknown fields stay empty.
+Skip competitors, hiring pages, deep news archives, architecture history, LinkedIn/person-background chasing, and deep tech-stack inference. Unknown fields stay empty — never invent facts to fill a field.
 
 ## Output
 

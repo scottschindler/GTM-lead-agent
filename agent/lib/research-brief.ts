@@ -91,6 +91,9 @@ const researchBriefBaseSchema = z.object({
   architectureNotes: stringList,
   competitors: stringList,
   priorities: stringList,
+  // 1-2 sentences on why this account is a fit for Vercel, grounded in the
+  // researched signals. Optional so a thin search never blocks the save.
+  vercelAngle: z.string().optional(),
   // Lenient like the lists: a dropped summary shouldn't cost a failed
   // tool call plus a full retry turn.
   summary: z
@@ -110,6 +113,7 @@ export const researchBriefSchema = researchBriefBaseSchema.superRefine(
       hasListItems(brief.person.sources);
     const hasSubstantiveResearch =
       hasText(brief.summary) ||
+      hasText(brief.vercelAngle) ||
       hasText(brief.company.industry) ||
       hasText(brief.company.employeeCount) ||
       hasText(brief.company.funding) ||
