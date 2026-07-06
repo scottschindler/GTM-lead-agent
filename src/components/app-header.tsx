@@ -71,7 +71,7 @@ export function AppHeader({
             href="/"
             className="text-sm font-medium text-[var(--geist-foreground)] hover:opacity-80"
           >
-            GTM Lead Factory
+            GTM Lead Agent
           </Link>
           {subtitle ? (
             <div className="text-xs text-[var(--geist-muted)]">{subtitle}</div>

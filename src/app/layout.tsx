@@ -8,7 +8,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "GTM Lead Factory",
+  title: "GTM Lead Agent",
   description:
     "Run one real lead through the Vercel GTM factory with live observability.",
 };

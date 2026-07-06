@@ -9,7 +9,7 @@ import { ResearchConfigurator } from "./research-configurator";
 import { SequenceConfigurator } from "./sequence-configurator";
 
 export const metadata: Metadata = {
-  title: "Configure | GTM Lead Factory",
+  title: "Configure | GTM Lead Agent",
   description:
     "Every knob and dial a salesperson can use to tune the lead factory agent.",
 };
@@ -77,7 +77,7 @@ function Toggle({
 export default function ConfigurePage() {
   return (
     <main className="min-h-screen bg-[var(--geist-background)] text-[var(--geist-foreground)]">
-      <AppHeader subtitle="Configure" />
+      <AppHeader />
 
       <div className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-8">
         <CollapsibleSection
