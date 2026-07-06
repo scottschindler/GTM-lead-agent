@@ -98,34 +98,6 @@ const DISQUALIFIED_RULES: Rule[] = [
   },
 ];
 
-const SCORE_BANDS = [
-  {
-    range: "0-2",
-    label: "Bad fit",
-    description: "Do not pursue. The account is missing the basic signal.",
-  },
-  {
-    range: "3-4",
-    label: "Weak fit",
-    description: "Usually disqualify unless a human sees a special reason.",
-  },
-  {
-    range: "5-6",
-    label: "Possible fit",
-    description: "Worth considering, but evidence needs to be clear.",
-  },
-  {
-    range: "7-8",
-    label: "Strong fit",
-    description: "Good match for outbound if the contact is reachable.",
-  },
-  {
-    range: "9-10",
-    label: "Ideal fit",
-    description: "Best accounts. These should almost always get attention.",
-  },
-];
-
 function thresholdMeaning(value: number): string {
   if (value <= 3) return "loose";
   if (value <= 6) return "balanced";
@@ -197,55 +169,6 @@ function RangeControl({
   );
 }
 
-function CalibrationGuide() {
-  return (
-    <div className="rounded-[8px] border border-[var(--geist-border)] px-3 py-3">
-      <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-        <div>
-          <h3 className="text-sm font-medium">How to configure this</h3>
-          <p className="mt-1 text-[11px] leading-4 text-[var(--geist-muted)]">
-            Use thresholds to decide the minimum score a lead must clear. Use
-            weights to decide which evidence matters most when the agent scores
-            a lead.
-          </p>
-          <div className="mt-2 grid gap-1.5 text-[11px] leading-4 text-[var(--geist-muted)]">
-            <p>
-              <span className="font-medium text-[var(--geist-foreground)]">
-                Higher threshold:
-              </span>{" "}
-              fewer leads qualify, but the review queue is cleaner.
-            </p>
-            <p>
-              <span className="font-medium text-[var(--geist-foreground)]">
-                Higher weight:
-              </span>{" "}
-              that factor has more influence on the final priority score.
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-1.5 sm:grid-cols-5">
-          {SCORE_BANDS.map((band) => (
-            <div
-              key={band.range}
-              className="rounded-[8px] border border-[var(--geist-border)] px-2 py-2"
-            >
-              <span className="font-mono text-[10px] text-[var(--geist-muted)]">
-                {band.range}
-              </span>
-              <span className="mt-0.5 block text-[11px] font-medium">
-                {band.label}
-              </span>
-              <span className="mt-0.5 block text-[10px] leading-3 text-[var(--geist-muted)]">
-                {band.description}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function RuleList({
   label,
   hint,
@@ -260,7 +183,7 @@ function RuleList({
   onToggle: (label: string) => void;
 }) {
   return (
-    <fieldset className="py-2">
+    <fieldset className="mt-3 py-2">
       <legend className="text-xs font-medium">{label}</legend>
       <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
         {hint}
@@ -302,7 +225,7 @@ function WeightControls({
   onChange: (label: string, value: number) => void;
 }) {
   return (
-    <fieldset className="py-2">
+    <fieldset className="mt-3 py-2">
       <legend className="text-xs font-medium">Score weights</legend>
       <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
         These are not lead scores. They tell the agent how much each factor
@@ -362,7 +285,6 @@ export function IcpConfigurator() {
 
   return (
     <div>
-      <CalibrationGuide />
       <RangeControl
         label="Minimum overall priority"
         hint="The final weighted score. Set this higher when the BDR only wants the best leads."

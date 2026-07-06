@@ -165,10 +165,6 @@ function RuleCard({
 }
 
 export function HandoffConfigurator() {
-  const [handoffDestination, setHandoffDestination] = useState("Assign to me");
-  const [waitingBehavior, setWaitingBehavior] = useState(
-    "Pause downstream work until reviewed",
-  );
   const [priorityScore, setPriorityScore] = useState(8);
   const [confidenceFloor, setConfidenceFloor] = useState(65);
   const [intentScore, setIntentScore] = useState(7);
@@ -187,50 +183,6 @@ export function HandoffConfigurator() {
 
   return (
     <div>
-      <div className="grid gap-3 py-1.5 sm:grid-cols-2">
-        <div>
-          <label className="block text-xs font-medium">Default handoff owner</label>
-          <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
-            Demo-only routing target for review cards and escalations.
-          </p>
-          <select
-            value={handoffDestination}
-            onChange={(event) => setHandoffDestination(event.target.value)}
-            className="mt-1.5 w-full rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-background)] px-2.5 py-1.5 text-xs"
-          >
-            {[
-              "Assign to me",
-              "Account owner",
-              "Round-robin AE team",
-              "Slack #gtm-handoffs",
-              "CRM task",
-            ].map((option) => (
-              <option key={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-xs font-medium">While waiting for review</label>
-          <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
-            Determines how strict the demo should feel once a rule triggers.
-          </p>
-          <select
-            value={waitingBehavior}
-            onChange={(event) => setWaitingBehavior(event.target.value)}
-            className="mt-1.5 w-full rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-background)] px-2.5 py-1.5 text-xs"
-          >
-            {[
-              "Pause downstream work until reviewed",
-              "Allow research, block messaging",
-              "Allow draft prep, block sends",
-              "Notify only",
-            ].map((option) => (
-              <option key={option}>{option}</option>
-            ))}
-          </select>
-        </div>
-      </div>
-
       <div className="grid gap-3 py-2 sm:grid-cols-2">
         <div>
           <div className="flex items-center justify-between gap-4">
@@ -313,7 +265,7 @@ export function HandoffConfigurator() {
         </div>
       </div>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Stage intervention points</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Checked rules create a review card before the next stage runs or before a send is released.
@@ -334,7 +286,7 @@ export function HandoffConfigurator() {
         </div>
       </fieldset>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Engagement handoff triggers</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           These define exactly when the sequence stops and a person takes over.
@@ -355,7 +307,7 @@ export function HandoffConfigurator() {
         </div>
       </fieldset>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Claim and compliance guardrails</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Selected guardrails force review before risky language reaches a buyer.

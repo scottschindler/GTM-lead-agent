@@ -6,14 +6,14 @@
   "companyDomain": "modal.com",
   "source": "ai-infra-research",
   "timezone": "America/New_York",
-  "createdAt": "2026-07-06T18:48:55.000Z",
-  "updatedAt": "2026-07-06T18:48:55.001Z",
+  "createdAt": "2026-07-06T12:46:52.000Z",
+  "updatedAt": "2026-07-06T12:46:52.001Z",
   "currentStage": "intake",
   "outcome": "open",
   "stages": {
     "intake": {
       "status": "done",
-      "updatedAt": "2026-07-06T18:48:55.000Z",
+      "updatedAt": "2026-07-06T12:46:52.000Z",
       "output": {
         "leadId": "lead_27",
         "source": "ai-infra-research"
@@ -21,35 +21,35 @@
     },
     "research": {
       "status": "pending",
-      "updatedAt": "2026-07-06T18:48:55.001Z"
+      "updatedAt": "2026-07-06T12:46:52.001Z"
     },
     "qualification": {
       "status": "pending",
-      "updatedAt": "2026-07-06T18:48:55.001Z"
+      "updatedAt": "2026-07-06T12:46:52.001Z"
     },
     "hypothesis": {
       "status": "pending",
-      "updatedAt": "2026-07-06T18:48:55.001Z"
+      "updatedAt": "2026-07-06T12:46:52.001Z"
     },
     "opportunity_mapping": {
       "status": "pending",
-      "updatedAt": "2026-07-06T18:48:55.001Z"
+      "updatedAt": "2026-07-06T12:46:52.001Z"
     },
     "content_generation": {
       "status": "pending",
-      "updatedAt": "2026-07-06T18:48:55.001Z"
+      "updatedAt": "2026-07-06T12:46:52.001Z"
     },
     "sequence_planning": {
       "status": "pending",
-      "updatedAt": "2026-07-06T18:48:55.001Z"
+      "updatedAt": "2026-07-06T12:46:52.001Z"
     },
     "engagement_intent": {
       "status": "pending",
-      "updatedAt": "2026-07-06T18:48:55.001Z"
+      "updatedAt": "2026-07-06T12:46:52.001Z"
     },
     "learning": {
       "status": "pending",
-      "updatedAt": "2026-07-06T18:48:55.001Z"
+      "updatedAt": "2026-07-06T12:46:52.001Z"
     }
   },
   "engagementEvents": [],

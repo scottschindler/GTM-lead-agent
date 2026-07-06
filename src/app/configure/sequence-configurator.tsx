@@ -294,7 +294,7 @@ export function SequenceConfigurator() {
         </div>
       </div>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Sequence planning signals</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Checked defaults match the sequence planning stage today. Extra
@@ -316,7 +316,7 @@ export function SequenceConfigurator() {
         </div>
       </fieldset>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Channels</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Email and LinkedIn match the current demo default.
@@ -337,7 +337,7 @@ export function SequenceConfigurator() {
         </div>
       </fieldset>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Touchpoint plan</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Current planned touches mirror the persisted sequence steps.
@@ -358,7 +358,7 @@ export function SequenceConfigurator() {
         </div>
       </fieldset>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Exit conditions</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Selected rules define when to stop, hand off, or pause.

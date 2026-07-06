@@ -222,7 +222,7 @@ export function MessagingConfigurator() {
         </div>
       </div>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Messaging signals</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Checked defaults match the content-generation stage today. Extra
@@ -244,7 +244,7 @@ export function MessagingConfigurator() {
         </div>
       </fieldset>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Global writing rules</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Rules applied to every generated email and landing-page tease.

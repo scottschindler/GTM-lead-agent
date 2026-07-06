@@ -3,6 +3,15 @@ import { join } from "node:path";
 
 const profiles = [
   {
+    id: "lead_27",
+    name: "Erik Bernhardsson",
+    email: "erik@modal.com",
+    company: "Modal",
+    companyDomain: "modal.com",
+    source: "ai-infra-research",
+    timezone: "America/New_York",
+  },
+  {
     id: "lead_seed",
     name: "Paul Copplestone",
     email: "paul@supabase.com",
@@ -127,15 +136,6 @@ const profiles = [
     companyDomain: "bun.sh",
     source: "demo-request",
     timezone: "America/Los_Angeles",
-  },
-  {
-    id: "lead_27",
-    name: "Erik Bernhardsson",
-    email: "erik@modal.com",
-    company: "Modal",
-    companyDomain: "modal.com",
-    source: "ai-infra-research",
-    timezone: "America/New_York",
   },
   {
     id: "lead_28",

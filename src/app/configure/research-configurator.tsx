@@ -177,7 +177,7 @@ export function ResearchConfigurator() {
         </select>
       </div>
 
-      <fieldset className="py-2">
+      <fieldset className="mt-3 py-2">
         <legend className="text-xs font-medium">Research signals</legend>
         <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
           Checked defaults match the research stage today. Extra signals can be

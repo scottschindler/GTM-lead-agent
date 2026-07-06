@@ -10,6 +10,15 @@ export type SeedLeadProfile = {
 
 export const SEED_LEAD_PROFILES: SeedLeadProfile[] = [
   {
+    id: "lead_27",
+    name: "Erik Bernhardsson",
+    email: "erik@modal.com",
+    company: "Modal",
+    companyDomain: "modal.com",
+    source: "ai-infra-research",
+    timezone: "America/New_York",
+  },
+  {
     id: "lead_seed",
     name: "Paul Copplestone",
     email: "paul@supabase.com",
@@ -124,15 +133,6 @@ export const SEED_LEAD_PROFILES: SeedLeadProfile[] = [
     company: "Knock",
     companyDomain: "knock.app",
     source: "pricing-page",
-    timezone: "America/New_York",
-  },
-  {
-    id: "lead_27",
-    name: "Erik Bernhardsson",
-    email: "erik@modal.com",
-    company: "Modal",
-    companyDomain: "modal.com",
-    source: "ai-infra-research",
     timezone: "America/New_York",
   },
   {
