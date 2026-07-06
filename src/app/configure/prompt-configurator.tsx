@@ -26,85 +26,11 @@ type PromptTemplate = {
 
 const INITIAL_TEMPLATES: PromptTemplate[] = [
   {
-    id: "research-brief",
-    name: "Research brief",
-    stage: "Research",
-    description:
-      "Controls the minimum evidence the researcher should collect before qualification.",
-    versions: [
-      {
-        id: "research-brief-v3",
-        version: 3,
-        status: "Active",
-        editedBy: "Scott",
-        updatedAt: "Jul 6",
-        replyRate: 15.8,
-        meetingRate: 5.7,
-        approvalRate: 88,
-        sampleSize: 246,
-        note: "Best balance of speed and useful account context.",
-        body:
-          "Find the company motion, 1 to 3 current initiatives, 1 to 3 technical signals, contact title, and source URLs. Prefer evidence from the company site, docs, engineering blog, careers, and recent news. Keep the brief compact enough for a BDR to scan quickly.",
-      },
-      {
-        id: "research-brief-v2",
-        version: 2,
-        status: "Archived",
-        editedBy: "Maya",
-        updatedAt: "Jul 2",
-        replyRate: 13.4,
-        meetingRate: 4.8,
-        approvalRate: 82,
-        sampleSize: 179,
-        note: "More complete, but too slow for lower-intent leads.",
-        body:
-          "Collect firmographic context, public funding notes, engineering hiring, product launches, technical stack, and source URLs. Return a detailed brief with confidence notes for each claim.",
-      },
-    ],
-  },
-  {
-    id: "qualification-rubric",
-    name: "Qualification rubric",
-    stage: "Qualification",
-    description:
-      "Defines how the BDR wants qualified leads separated from weak-fit accounts.",
-    versions: [
-      {
-        id: "qualification-rubric-v4",
-        version: 4,
-        status: "Active",
-        editedBy: "Alex",
-        updatedAt: "Jul 5",
-        replyRate: 17.2,
-        meetingRate: 6.3,
-        approvalRate: 92,
-        sampleSize: 211,
-        note: "Strongest meeting rate with fewer low-fit accounts entering review.",
-        body:
-          "Score company fit, buyer authority, timing, technical relevance, and product intent. A qualified lead should show a credible product or engineering-led motion, a reachable buyer or champion, and a clear Vercel-relevant hypothesis. Disqualify weak public evidence, generic agencies, students, and accounts without a credible web or software motion.",
-      },
-      {
-        id: "qualification-rubric-v3",
-        version: 3,
-        status: "Archived",
-        editedBy: "Scott",
-        updatedAt: "Jul 3",
-        replyRate: 14.9,
-        meetingRate: 5.1,
-        approvalRate: 86,
-        sampleSize: 190,
-        note: "Let too many broad SaaS accounts through.",
-        body:
-          "Score company size, industry, role seniority, technical stack, and product activity. Prioritize developer tools, AI products, B2B SaaS, and teams with React or Next.js signals.",
-      },
-    ],
-  },
-  {
     id: "messaging-draft",
-    name: "Messaging draft",
-    stage: "Messaging",
+    name: "First email draft",
+    stage: "Email",
     description:
-      "Shapes the first outbound email, subject lines, CTA, and sender notes.",
+      "Controls the structure, length, tone, and proof level of the first outbound email.",
     versions: [
       {
         id: "messaging-draft-v6",
@@ -137,39 +63,113 @@ const INITIAL_TEMPLATES: PromptTemplate[] = [
     ],
   },
   {
-    id: "sequence-plan",
-    name: "Sequence plan",
-    stage: "Sequence",
+    id: "landing-page-copy",
+    name: "Landing page copy",
+    stage: "Page",
     description:
-      "Sets the cadence, touch order, follow-up rules, and stop conditions.",
+      "Controls the personalized page headline, note, proof points, and CTA copy.",
     versions: [
       {
-        id: "sequence-plan-v3",
-        version: 3,
+        id: "landing-page-copy-v4",
+        version: 4,
         status: "Active",
         editedBy: "Maya",
-        updatedAt: "Jul 5",
-        replyRate: 14.7,
-        meetingRate: 5.4,
-        approvalRate: 90,
-        sampleSize: 198,
-        note: "Highest approval rate for the light-touch sequence.",
+        updatedAt: "Jul 6",
+        replyRate: 18.2,
+        meetingRate: 6.8,
+        approvalRate: 91,
+        sampleSize: 214,
+        note: "Best page variant. Clearer story and fewer proof points.",
         body:
-          "Plan email first, a light social touch after 2 days, one email follow-up after 5 days, then pause unless there is engagement. Stop immediately on reply, explicit no, opt-out, pricing discussion, security review, or buying intent.",
+          "Write a short personalized page for the account. Use one headline tied to the company, one personal note, two opportunity cards, one relevant customer story, and one CTA. Keep claims grounded. Prefer concrete workflow outcomes over broad platform language.",
       },
       {
-        id: "sequence-plan-v2",
+        id: "landing-page-copy-v3",
+        version: 3,
+        status: "Archived",
+        editedBy: "Scott",
+        updatedAt: "Jul 3",
+        replyRate: 15.9,
+        meetingRate: 5.6,
+        approvalRate: 86,
+        sampleSize: 188,
+        note: "Too much page content for quick review.",
+        body:
+          "Create a personalized landing page with a headline, long account note, three opportunities, two customer stories, stats, and CTA. Include enough proof for a technical buyer to evaluate the fit.",
+      },
+    ],
+  },
+  {
+    id: "subject-lines",
+    name: "Subject lines",
+    stage: "Subject",
+    description:
+      "Controls how subject options are generated and ranked for the first send.",
+    versions: [
+      {
+        id: "subject-lines-v5",
+        version: 5,
+        status: "Active",
+        editedBy: "Jordan",
+        updatedAt: "Jul 6",
+        replyRate: 20.4,
+        meetingRate: 7.1,
+        approvalRate: 93,
+        sampleSize: 252,
+        note: "Highest reply rate. Short and account-specific.",
+        body:
+          "Generate 2 to 3 subject lines under 8 words. Prefer specific workflow language from the account research. Avoid hype, urgency, first-name gimmicks, and vague one-word subjects. Pick the subject most likely to feel useful to an engineering or product leader.",
+      },
+      {
+        id: "subject-lines-v4",
+        version: 4,
+        status: "Archived",
+        editedBy: "Maya",
+        updatedAt: "Jul 4",
+        replyRate: 17.6,
+        meetingRate: 6.2,
+        approvalRate: 88,
+        sampleSize: 205,
+        note: "Good opens, but some subjects felt too generic.",
+        body:
+          "Generate short subject lines that mention the company, Vercel, or a relevant product area. Keep each subject under 8 words and avoid spammy phrasing.",
+      },
+    ],
+  },
+  {
+    id: "cta-objections",
+    name: "CTA and objections",
+    stage: "CTA",
+    description:
+      "Controls the ask at the end of the message and the sender-only objection notes.",
+    versions: [
+      {
+        id: "cta-objections-v3",
+        version: 3,
+        status: "Active",
+        editedBy: "Alex",
+        updatedAt: "Jul 5",
+        replyRate: 17.9,
+        meetingRate: 6.5,
+        approvalRate: 92,
+        sampleSize: 223,
+        note: "Best close. Specific ask without sounding pushy.",
+        body:
+          "End with one clear CTA tied to the account hypothesis. Ask for a short technical conversation, not a generic demo. Save 1 to 2 concise objection notes for the sender, focused on existing tooling, migration effort, or timing. Do not put objection handling in the buyer-facing email body.",
+      },
+      {
+        id: "cta-objections-v2",
         version: 2,
         status: "Archived",
         editedBy: "Scott",
-        updatedAt: "Jul 1",
-        replyRate: 12.8,
-        meetingRate: 4.2,
-        approvalRate: 84,
-        sampleSize: 164,
-        note: "Too many touches for the current demo motion.",
+        updatedAt: "Jul 2",
+        replyRate: 15.1,
+        meetingRate: 5.2,
+        approvalRate: 87,
+        sampleSize: 176,
+        note: "Too soft. BDRs often rewrote the ask.",
         body:
-          "Plan four touches across email and LinkedIn over 12 business days. Continue follow-up until reply, opt-out, or no engagement after the final touch.",
+          "Close with a low-pressure CTA asking whether the topic is relevant. Include common objections and short responses for the sender.",
       },
     ],
   },
@@ -192,7 +192,7 @@ function getBestVersion(template: PromptTemplate): PromptVersion {
 
 export function PromptConfigurator() {
   const [templates, setTemplates] = useState(() => cloneTemplates(INITIAL_TEMPLATES));
-  const [selectedTemplateId, setSelectedTemplateId] = useState(templates[2].id);
+  const [selectedTemplateId, setSelectedTemplateId] = useState(templates[0].id);
   const selectedTemplate = templates.find(
     (template) => template.id === selectedTemplateId,
   ) ?? templates[0];
@@ -291,9 +291,9 @@ export function PromptConfigurator() {
     <div>
       <div className="grid gap-3 py-1.5 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         <div>
-          <label className="block text-xs font-medium">Prompt area</label>
+          <label className="block text-xs font-medium">Messaging prompt</label>
           <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
-            Pick the prompt a BDR wants to tune for the demo.
+            Pick the messaging or content prompt to tune for the demo.
           </p>
           <div className="mt-2 grid gap-1.5">
             {templates.map((template) => (
@@ -375,88 +375,107 @@ export function PromptConfigurator() {
         </div>
       </div>
 
-      <fieldset className="py-2">
-        <legend className="text-xs font-medium">Version history</legend>
-        <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
-          Select a prior version, compare its metrics, then restore it or mark it active.
-        </p>
-        <div className="mt-2 grid gap-1.5">
-          {selectedTemplate.versions
-            .slice()
-            .sort((a, b) => b.version - a.version)
-            .map((version) => (
-              <button
-                key={version.id}
-                type="button"
-                onClick={() => selectVersion(version.id)}
-                className={`rounded-[8px] border px-2.5 py-2 text-left ${
-                  selectedVersion.id === version.id
-                    ? "border-[var(--geist-foreground)]"
-                    : "border-[var(--geist-border)]"
-                }`}
-              >
-                <span className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="text-xs font-medium">
-                    v{version.version} - {version.status}
-                  </span>
-                  <span className="font-mono text-[10px] text-[var(--geist-muted)]">
-                    {version.updatedAt} by {version.editedBy}
-                  </span>
-                </span>
-                <span className="mt-1 grid gap-1 font-mono text-[10px] text-[var(--geist-muted)] sm:grid-cols-4">
-                  <span>Replies {formatPercent(version.replyRate)}</span>
-                  <span>Meetings {formatPercent(version.meetingRate)}</span>
-                  <span>Approval {version.approvalRate}%</span>
-                  <span>{version.sampleSize} leads</span>
-                </span>
-                <span className="mt-1 block text-[11px] leading-4 text-[var(--geist-muted)]">
-                  {version.note}
-                </span>
-              </button>
-            ))}
-        </div>
-      </fieldset>
+      <details className="mt-3 rounded-[8px] border border-[var(--geist-border)]">
+        <summary className="flex cursor-pointer list-none items-start justify-between gap-3 px-3 py-2 marker:hidden">
+          <span>
+            <span className="block text-xs font-medium">Prompt performance</span>
+            <span className="mt-0.5 block text-[11px] leading-4 text-[var(--geist-muted)]">
+              Expand to compare version history and best-performing prompts.
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-[var(--geist-border)] font-mono text-xs text-[var(--geist-muted)]"
+          >
+            +
+          </span>
+        </summary>
+        <div className="border-t border-[var(--geist-border)] px-3 py-3">
+          <fieldset className="py-2">
+            <legend className="text-xs font-medium">Version history</legend>
+            <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
+              Select a prior version, compare its metrics, then restore it or mark it active.
+            </p>
+            <div className="mt-2 grid gap-1.5">
+              {selectedTemplate.versions
+                .slice()
+                .sort((a, b) => b.version - a.version)
+                .map((version) => (
+                  <button
+                    key={version.id}
+                    type="button"
+                    onClick={() => selectVersion(version.id)}
+                    className={`rounded-[8px] border px-2.5 py-2 text-left ${
+                      selectedVersion.id === version.id
+                        ? "border-[var(--geist-foreground)]"
+                        : "border-[var(--geist-border)]"
+                    }`}
+                  >
+                    <span className="flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-xs font-medium">
+                        v{version.version} - {version.status}
+                      </span>
+                      <span className="font-mono text-[10px] text-[var(--geist-muted)]">
+                        {version.updatedAt} by {version.editedBy}
+                      </span>
+                    </span>
+                    <span className="mt-1 grid gap-1 font-mono text-[10px] text-[var(--geist-muted)] sm:grid-cols-4">
+                      <span>Replies {formatPercent(version.replyRate)}</span>
+                      <span>Meetings {formatPercent(version.meetingRate)}</span>
+                      <span>Approval {version.approvalRate}%</span>
+                      <span>{version.sampleSize} leads</span>
+                    </span>
+                    <span className="mt-1 block text-[11px] leading-4 text-[var(--geist-muted)]">
+                      {version.note}
+                    </span>
+                  </button>
+                ))}
+            </div>
+          </fieldset>
 
-      <fieldset className="py-2">
-        <legend className="text-xs font-medium">Best-performing prompts</legend>
-        <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
-          Ranked by meeting rate, using seeded demo outcomes.
-        </p>
-        <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
-          {bestPerformers.map(({ template, version }, index) => (
-            <button
-              key={`${template.id}-${version.id}`}
-              type="button"
-              onClick={() => {
-                selectTemplate(template.id);
-                setSelectedVersionId(version.id);
-                setDraftText(version.body);
-                setDraftNote(version.note);
-              }}
-              className="rounded-[8px] border border-[var(--geist-border)] px-2.5 py-2 text-left"
-            >
-              <span className="flex items-start justify-between gap-3">
-                <span>
-                  <span className="block text-xs font-medium">
-                    {index + 1}. {template.name} v{version.version}
+          <fieldset className="py-2">
+            <legend className="text-xs font-medium">Best-performing prompts</legend>
+            <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
+              Messaging and content prompts ranked by meeting rate, using seeded
+              demo outcomes.
+            </p>
+            <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
+              {bestPerformers.map(({ template, version }, index) => (
+                <button
+                  key={`${template.id}-${version.id}`}
+                  type="button"
+                  onClick={() => {
+                    selectTemplate(template.id);
+                    setSelectedVersionId(version.id);
+                    setDraftText(version.body);
+                    setDraftNote(version.note);
+                  }}
+                  className="rounded-[8px] border border-[var(--geist-border)] px-2.5 py-2 text-left"
+                >
+                  <span className="flex items-start justify-between gap-3">
+                    <span>
+                      <span className="block text-xs font-medium">
+                        {index + 1}. {template.name} v{version.version}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-[var(--geist-muted)]">
+                        {version.note}
+                      </span>
+                    </span>
+                    <span className="font-mono text-xs">
+                      {formatPercent(version.meetingRate)}
+                    </span>
                   </span>
-                  <span className="mt-0.5 block text-[11px] text-[var(--geist-muted)]">
-                    {version.note}
+                  <span className="mt-1 grid gap-1 font-mono text-[10px] text-[var(--geist-muted)] sm:grid-cols-3">
+                    <span>{formatPercent(version.replyRate)} replies</span>
+                    <span>{version.approvalRate}% approved</span>
+                    <span>{version.sampleSize} leads</span>
                   </span>
-                </span>
-                <span className="font-mono text-xs">
-                  {formatPercent(version.meetingRate)}
-                </span>
-              </span>
-              <span className="mt-1 grid gap-1 font-mono text-[10px] text-[var(--geist-muted)] sm:grid-cols-3">
-                <span>{formatPercent(version.replyRate)} replies</span>
-                <span>{version.approvalRate}% approved</span>
-                <span>{version.sampleSize} leads</span>
-              </span>
-            </button>
-          ))}
+                </button>
+              ))}
+            </div>
+          </fieldset>
         </div>
-      </fieldset>
+      </details>
     </div>
   );
 }

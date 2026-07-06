@@ -395,28 +395,37 @@ function presentText(value: string | undefined, fallback: string): string {
 
 export async function queueSendDraft(
   leadId: string,
-  input: { subject: string; body: string; cta: string; timezone?: string },
+  input: {
+    subject: string;
+    body: string;
+    cta: string;
+    timezone?: string;
+    reviewStatus?: "drafted" | "approved";
+  },
 ): Promise<{ lead: Lead; send: NonNullable<ContentGenerationOutput["send"]> }> {
   let send: NonNullable<ContentGenerationOutput["send"]>;
   const lead = await updateLead(leadId, (lead) => {
     const existing = (lead.stages.content_generation?.output ??
       {}) as Partial<ContentGenerationOutput>;
+    const now = new Date().toISOString();
+    const status = input.reviewStatus ?? "drafted";
     const body = emailBodyWithLandingPage(input.body, existing.landingPageUrl);
     const sendWindow = computeSendWindow(
       input.timezone ?? lead.timezone ?? "America/Los_Angeles",
     );
 
     send = {
-      status: "drafted",
+      status,
       subject: input.subject,
       body,
       cta: input.cta,
       sendWindow,
+      ...(status === "approved" ? { approvedAt: now } : {}),
     };
 
     lead.stages.content_generation = {
       status: "done",
-      updatedAt: new Date().toISOString(),
+      updatedAt: now,
       output: {
         messagingStrategy: existing.messagingStrategy,
         subjectLines: existing.subjectLines?.length

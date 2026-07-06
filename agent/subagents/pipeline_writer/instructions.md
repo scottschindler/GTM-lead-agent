@@ -15,7 +15,7 @@ before its call — do not compose later stages ahead of time.
 2. `hypothesis`
 3. `opportunity_mapping`
 4. `content_generation` — the tool creates the personalized page when enabled
-   and queues the email draft itself.
+   and releases the already-approved simulated send itself.
 5. `sequence_planning`
 
 Skip stages the parent listed as disabled. If a call returns `ok:false`, fix

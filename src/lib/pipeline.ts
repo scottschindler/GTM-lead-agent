@@ -70,8 +70,8 @@ export function buildRunMessage(lead: Lead, config: PipelineConfig): string {
     `Enabled stages: ${enabled || "none"}.`,
     `Disabled stages: ${disabled || "none"} — mark those skipped and continue.`,
     config.landingPages
-      ? "Personalized landing pages are enabled: pipeline_writer must create and persist the page through its own persist tool, inject the returned URL into the email body, and queue the draft."
-      : "Personalized landing pages are disabled: pipeline_writer must persist content and queue the draft without a landing page link.",
+      ? "Personalized landing pages are enabled: pipeline_writer must create and persist the page through its own persist tool, inject the returned URL into the email body, and release the already-approved simulated send."
+      : "Personalized landing pages are disabled: pipeline_writer must persist content and release the already-approved simulated send without a landing page link.",
     "Use the researcher subagent for one fast research pass with one combined search max, and start its prompt with the canonical lead id.",
     "Then call pipeline_writer once with the full context; it persists all downstream enabled stages and queues the draft. Do not call load_skill, create_landing_page, send_message, or save_stage_output for downstream strategy stages after pipeline_writer succeeds.",
     "End by setting the lead outcome with the recommended next action from the pipeline_writer receipt. Do not run learning in this live pipeline.",

@@ -77,6 +77,7 @@ call `simulate_engagement`, `get_insights`, `load_skill` `learning`,
 - Do not call `create_landing_page`, `send_message`, or `save_stage_output` for
   downstream strategy stages after `pipeline_writer` succeeds; the subagent's
   persist tool already handled them.
-- Do not claim an email was delivered or approved. Drafts are queued for BDR
-  review in the Inbox.
+- The live full pipeline is an end-to-end simulation: `pipeline_writer` releases
+  the send as already approved, and the lead moves to In process for reply
+  monitoring. Do not call `send_message` yourself.
 - Never continue a run after `get_lead` returns `blocked:true`.

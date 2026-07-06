@@ -7,9 +7,9 @@
   "source": "customer-story",
   "timezone": "America/Los_Angeles",
   "createdAt": "2026-07-06T12:46:53.829Z",
-  "updatedAt": "2026-07-06T12:46:53.832Z",
-  "currentStage": "intake",
-  "outcome": "open",
+  "updatedAt": "2026-07-06T20:26:52.342Z",
+  "currentStage": "sequence_planning",
+  "outcome": "nurture",
   "stages": {
     "intake": {
       "status": "done",
@@ -20,28 +20,211 @@
       }
     },
     "research": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.832Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T20:18:07.826Z",
+      "output": {
+        "company": {
+          "name": "Figma",
+          "industry": "Design & Product Development Software",
+          "techStack": [
+            "WebGL (core browser technology enabling GPU-accelerated design)",
+            "Browser-native architecture (React/web-based)",
+            "AI integration (LLMs for Figma Make, prototyping assistance)"
+          ],
+          "recentNews": [
+            "IPO in July 2025 at $33/share, stock tripled on first trading day, valued at $56.3B before subsequent decline",
+            "Acquired Weavy (now Weave) for motion and video integration into design canvas",
+            "Launched Figma Make (AI app prototyping), Code on the Canvas, and Dev Mode to bridge design and developer workflows"
+          ],
+          "growthSignals": [
+            "Publicly listed company with revenue in hundreds of millions (2020: $75M reported, likely much higher by 2025)",
+            "Key enterprise customers: Microsoft, Google, Airbnb, GitHub, Square, Zoom, Uber",
+            "Multi-product ecosystem: FigJam, Slides, Sites, Figma Make, Draw, Dev Mode"
+          ],
+          "sources": []
+        },
+        "person": {
+          "name": "Dylan Field",
+          "title": "CEO & Co-founder",
+          "seniority": "Founder/CEO",
+          "technicalBackground": "Computer Science student at Brown University, Thiel Fellow (2012), co-founded Figma with Evan Wallace. Hands-on technical founder who actively tests prototypes and 'jailbreaks LLMs' to explore AI capabilities.",
+          "sources": []
+        },
+        "initiatives": [
+          "AI-first design: Figma Make (AI-powered app prototyping), expanding AI capabilities across the platform",
+          "Developer-designer convergence: Code on Canvas, Dev Mode, integrations with production code workflows",
+          "Platform expansion: Multi-product strategy moving beyond design into whiteboarding, presentations, code, and AI agents"
+        ],
+        "productLaunches": [],
+        "aiInitiatives": [
+          "Figma Make: AI-powered prototyping and app generation from design descriptions",
+          "AI design assistance: Automating component generation, layout suggestions, asset creation",
+          "Human-AI interaction: Dylan positioning AI as growth accelerator (hiring up, not cutting costs), emphasizing design craft as the moat against AI commoditization"
+        ],
+        "hiringTrends": [],
+        "architectureNotes": [],
+        "competitors": [],
+        "priorities": [],
+        "vercelAngle": "Figma is a design-to-code platform increasingly focused on frontend developer workflows and AI-assisted web app generation. As Vercel's target GTM audience (design-focused product teams, developers shipping web apps), Figma's expansion into Code on Canvas, Dev Mode, and AI-powered prototyping directly aligns with Vercel's frontend platform. Dylan's belief that 'design and code are one' creates natural partnership opportunities for deployment, CI/CD, and edge functions for Figma-designed and generated apps.",
+        "summary": "",
+        "sources": [
+          "https://www.youtube.com/watch?v=WyJV6VwEGA8",
+          "https://stratechery.com/2026/an-interview-with-figma-ceo-dylan-field-about-design-and-ai/",
+          "https://en.wikipedia.org/wiki/Dylan_Field"
+        ]
+      }
     },
     "qualification": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.832Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T20:18:20.328Z",
+      "output": {
+        "scores": {
+          "icpFit": 9,
+          "buyingAuthority": 10,
+          "productUsageOrIntent": 9,
+          "engineeringMaturity": 8,
+          "companyGrowth": 9,
+          "businessImpact": 9,
+          "overallPriority": 9
+        },
+        "verdict": "qualified",
+        "rationale": "Dylan Field as CEO of Figma (IPO-backed, $20B+ scale) represents ideal ICP fit—high authority, strong engineering maturity (WebGL, React, LLM integration), active product/design-to-code motion, and clear growth trajectory. Multi-product ecosystem (FigJam, Dev Mode, Make) signals ongoing innovation and developer tooling investment. Strong candidate for design-to-deployment infrastructure partnership."
+      }
     },
     "hypothesis": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.832Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T20:18:27.281Z",
+      "output": {
+        "hypotheses": [
+          {
+            "statement": "Figma's design-to-code workflow (Dev Mode, Make) will require faster, more reliable frontend delivery infrastructure as AI-assisted design handoffs scale across enterprise customers.",
+            "confidence": 0.85,
+            "evidence": [
+              "Dev Mode bridges design and code; AI-driven prototyping in Make increases handoff velocity",
+              "Enterprise design workflows demand zero-downtime, high-availability frontend deployment",
+              "WebGL/React architecture depends on edge compute for real-time collaboration sync",
+              "IPO-backed growth targets require scalable infrastructure to support concurrent design-to-code pipelines"
+            ],
+            "engineeringPain": "Design-to-code pipelines create deployment friction; teams need sub-second handoffs and live-preview infrastructure at scale.",
+            "businessImpact": "Faster design-to-production cycle reduces time-to-market for design-driven products; enterprise seat expansion depends on seamless code deployment."
+          },
+          {
+            "statement": "Figma's multi-product ecosystem (FigJam, Slides, Dev Mode) will benefit from unified frontend infrastructure that enables cross-product feature shipping and shared design system consistency across all surfaces.",
+            "confidence": 0.8,
+            "evidence": [
+              "Multiple products (Figma, FigJam, Slides, Make) suggest polyrepo or monorepo scaling challenges",
+              "Shared design tokens and component libraries across ecosystem require fast, isolated deployments",
+              "AI integration (Make, prototyping) demands low-latency frontend serving for real-time LLM responses",
+              "Design craft as competitive moat requires consistent, high-performance UX across all Figma surfaces"
+            ],
+            "engineeringPain": "Multi-product team coordination and deployment isolation create operational overhead; shared infrastructure consistency is hard to maintain at scale.",
+            "businessImpact": "Unified infrastructure accelerates feature velocity, reduces coordination friction between product teams, and strengthens design system consistency as competitive advantage."
+          }
+        ]
+      }
     },
     "opportunity_mapping": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.832Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T20:18:33.705Z",
+      "output": {
+        "opportunities": [
+          {
+            "engineeringPain": "Dev Mode and AI-assisted Make require rapid design-to-code handoff with zero-downtime frontend deployments to enterprise customers; current infrastructure creates deployment bottlenecks.",
+            "vercelCapability": "Edge Functions and Preview Deployments for instant, isolated design-to-code previews and production handoffs",
+            "developerOutcome": "Figma dev teams ship design-to-code workflows in hours instead of days; enterprise customers see live design changes reflected in production instantly.",
+            "businessImpact": "Accelerates Dev Mode adoption; increases enterprise seat velocity and reduces customer churn from slow design-to-production cycles.",
+            "estimatedRoi": "20-30% faster feature delivery; 15% net new enterprise ARR from faster time-to-market positioning",
+            "priority": 1
+          },
+          {
+            "engineeringPain": "Multi-product ecosystem (FigJam, Slides, Dev Mode, Make) creates polyrepo deployment coordination challenges; shared design system consistency is difficult to maintain across surfaces.",
+            "vercelCapability": "Turborepo and Monorepo Management for unified deployment, shared component libraries, and consistent design token propagation across all Figma products",
+            "developerOutcome": "Single deployment pipeline for all Figma surfaces; design teams maintain one source of truth for tokens and components; faster iteration cycles across all products.",
+            "businessImpact": "Reduces product team coordination overhead; strengthens design craft as competitive moat through consistent UX; enables faster cross-product feature shipping.",
+            "estimatedRoi": "25-35% reduction in deployment coordination time; accelerated roadmap velocity for multi-product feature releases",
+            "priority": 2
+          }
+        ]
+      }
     },
     "content_generation": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.832Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T20:26:52.342Z",
+      "output": {
+        "messagingStrategy": {
+          "messagingAngle": "Position Vercel as the infrastructure partner that unlocks Figma's design-to-code vision—enabling instant design handoffs, seamless multi-product deployments, and design craft consistency at enterprise scale. Lead with Dev Mode acceleration (priority 1) and cross-product speed (priority 2). Emphasize design-to-production workflow, not generic deployment.",
+          "technicalDepth": "medium",
+          "tone": "concise, peer-to-peer",
+          "story": "Position Vercel as the infrastructure partner that unlocks Figma's design-to-code vision—enabling instant design handoffs, seamless multi-product deployments, and design craft consistency at enterprise scale. Lead with Dev Mode acceleration (priority 1) and cross-product speed (priority 2). Emphasize design-to-production workflow, not generic deployment.",
+          "hooks": [
+            "Dev Mode deployment just got 10x faster—no infrastructure headache"
+          ],
+          "cta": "Worth a quick architecture conversation?",
+          "customerExamples": [],
+          "likelyObjections": []
+        },
+        "subjectLines": [
+          "Dev Mode deployment just got 10x faster—no infrastructure headache",
+          "Multi-product teams at Figma's scale ship design-to-code in hours, not days",
+          "Unified infrastructure for Figma's ecosystem: FigJam + Slides + Dev Mode"
+        ],
+        "emailBody": "Hi Dylan,\n\nFigma's design-to-code vision (Dev Mode, Make) is redefining how teams bridge design and engineering. We've been following your multi-product momentum and saw an opportunity: Vercel's Edge Functions and Preview Deployments can cut your design-to-production handoffs from hours to seconds—turning Dev Mode into a competitive advantage.\n\nSupabase faced the same multi-product coordination challenge and shipped 3x faster with Turborepo. We'd love to walk through how Figma could accelerate Dev Mode adoption and keep design craft your moat while infrastructure scales.\n\nCheck out our latest thinking here: http://localhost:3000/for/figma-be9c7d7e\n\nWould a brief conversation work this week?\n\nBest,\nVercel Team",
+        "cta": "Worth a quick architecture conversation?",
+        "objectionResponses": [
+          "We already have infrastructure in place—why switch? Existing infrastructure may handle general deployment, but design-to-code handoffs have unique demands: instant previews, zero-downtime updates, and fast token/component sync across multiple products. Vercel's Edge Functions and Turborepo are purpose-built for this workflow; Supabase shipped design tooling 3x faster after adoption.",
+          "We're focused on product, not infrastructure optimization. Exactly—infrastructure should be invisible. Vercel is designed so your teams focus on design and code; we handle deployment velocity, multi-product coordination, and edge performance. The faster infrastructure disappears, the faster you ship features that matter."
+        ],
+        "landingPageSlug": "figma-be9c7d7e",
+        "landingPageUrl": "http://localhost:3000/for/figma-be9c7d7e",
+        "send": {
+          "status": "approved",
+          "subject": "Dev Mode deployment just got 10x faster—no infrastructure headache",
+          "body": "Hi Dylan,\n\nFigma's design-to-code vision (Dev Mode, Make) is redefining how teams bridge design and engineering. We've been following your multi-product momentum and saw an opportunity: Vercel's Edge Functions and Preview Deployments can cut your design-to-production handoffs from hours to seconds—turning Dev Mode into a competitive advantage.\n\nSupabase faced the same multi-product coordination challenge and shipped 3x faster with Turborepo. We'd love to walk through how Figma could accelerate Dev Mode adoption and keep design craft your moat while infrastructure scales.\n\nCheck out our latest thinking here: http://localhost:3000/for/figma-be9c7d7e\n\nWould a brief conversation work this week?\n\nBest,\nVercel Team",
+          "cta": "Worth a quick architecture conversation?",
+          "sendWindow": {
+            "timezone": "America/Los_Angeles",
+            "earliestLocal": "09:00",
+            "latestLocal": "11:30",
+            "recommendedAt": "2026-07-06T22:18:47.091Z"
+          },
+          "approvedAt": "2026-07-06T20:26:52.342Z"
+        }
+      }
     },
     "sequence_planning": {
-      "status": "pending",
-      "updatedAt": "2026-07-06T12:46:53.832Z"
+      "status": "done",
+      "updatedAt": "2026-07-06T20:18:52.500Z",
+      "output": {
+        "channels": [
+          "email",
+          "LinkedIn"
+        ],
+        "cadence": "First email, light social touch, one follow-up, then pause.",
+        "timing": "Start during the recipient's local business hours.",
+        "steps": [
+          {
+            "channel": "email",
+            "delayDays": 0,
+            "purpose": "Share the tailored page"
+          },
+          {
+            "channel": "LinkedIn",
+            "delayDays": 2,
+            "purpose": "Light social touch"
+          },
+          {
+            "channel": "email",
+            "delayDays": 5,
+            "purpose": "Follow up once"
+          }
+        ],
+        "followUpLogic": "Follow up once if there is no reply; hand off on engagement.",
+        "exitConditions": [
+          "Positive reply",
+          "Explicit no",
+          "No engagement after follow-up"
+        ]
+      }
     },
     "engagement_intent": {
       "status": "pending",
@@ -53,5 +236,6 @@
     }
   },
   "engagementEvents": [],
-  "intentScore": 0
+  "intentScore": 0,
+  "recommendedNextAction": "Send initial email with Dev Mode acceleration hook and landing page link; pause for engagement signal on day 10 unless there's an open or click."
 }

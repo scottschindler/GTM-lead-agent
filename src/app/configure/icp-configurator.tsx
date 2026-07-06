@@ -98,6 +98,49 @@ const DISQUALIFIED_RULES: Rule[] = [
   },
 ];
 
+const SCORE_BANDS = [
+  {
+    range: "0-2",
+    label: "Bad fit",
+    description: "Do not pursue. The account is missing the basic signal.",
+  },
+  {
+    range: "3-4",
+    label: "Weak fit",
+    description: "Usually disqualify unless a human sees a special reason.",
+  },
+  {
+    range: "5-6",
+    label: "Possible fit",
+    description: "Worth considering, but evidence needs to be clear.",
+  },
+  {
+    range: "7-8",
+    label: "Strong fit",
+    description: "Good match for outbound if the contact is reachable.",
+  },
+  {
+    range: "9-10",
+    label: "Ideal fit",
+    description: "Best accounts. These should almost always get attention.",
+  },
+];
+
+function thresholdMeaning(value: number): string {
+  if (value <= 3) return "loose";
+  if (value <= 6) return "balanced";
+  if (value <= 8) return "strict";
+  return "very strict";
+}
+
+function weightMeaning(value: number): string {
+  if (value === 0) return "ignored";
+  if (value <= 3) return "low influence";
+  if (value <= 6) return "standard influence";
+  if (value <= 8) return "high influence";
+  return "primary driver";
+}
+
 function toggleValue(values: string[], value: string): string[] {
   return values.includes(value)
     ? values.filter((item) => item !== value)
@@ -111,6 +154,7 @@ function RangeControl({
   min = 0,
   max = 10,
   unit,
+  valueLabel,
   onChange,
 }: {
   label: string;
@@ -119,6 +163,7 @@ function RangeControl({
   min?: number;
   max?: number;
   unit?: string;
+  valueLabel?: string;
   onChange: (value: number) => void;
 }) {
   return (
@@ -128,6 +173,7 @@ function RangeControl({
         <span className="font-mono text-[11px] text-[var(--geist-muted)]">
           {value}
           {unit ?? ""}
+          {valueLabel ? ` - ${valueLabel}` : ""}
         </span>
       </div>
       {hint ? (
@@ -143,6 +189,59 @@ function RangeControl({
         onChange={(event) => onChange(Number(event.target.value))}
         className="mt-1.5 w-full accent-[var(--geist-success)]"
       />
+      <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-[var(--geist-muted)]">
+        <span>{min} loose</span>
+        <span>{max} strict</span>
+      </div>
+    </div>
+  );
+}
+
+function CalibrationGuide() {
+  return (
+    <div className="rounded-[8px] border border-[var(--geist-border)] px-3 py-3">
+      <div className="grid gap-3 md:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div>
+          <h3 className="text-sm font-medium">How to configure this</h3>
+          <p className="mt-1 text-[11px] leading-4 text-[var(--geist-muted)]">
+            Use thresholds to decide the minimum score a lead must clear. Use
+            weights to decide which evidence matters most when the agent scores
+            a lead.
+          </p>
+          <div className="mt-2 grid gap-1.5 text-[11px] leading-4 text-[var(--geist-muted)]">
+            <p>
+              <span className="font-medium text-[var(--geist-foreground)]">
+                Higher threshold:
+              </span>{" "}
+              fewer leads qualify, but the review queue is cleaner.
+            </p>
+            <p>
+              <span className="font-medium text-[var(--geist-foreground)]">
+                Higher weight:
+              </span>{" "}
+              that factor has more influence on the final priority score.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-1.5 sm:grid-cols-5">
+          {SCORE_BANDS.map((band) => (
+            <div
+              key={band.range}
+              className="rounded-[8px] border border-[var(--geist-border)] px-2 py-2"
+            >
+              <span className="font-mono text-[10px] text-[var(--geist-muted)]">
+                {band.range}
+              </span>
+              <span className="mt-0.5 block text-[11px] font-medium">
+                {band.label}
+              </span>
+              <span className="mt-0.5 block text-[10px] leading-3 text-[var(--geist-muted)]">
+                {band.description}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -206,7 +305,8 @@ function WeightControls({
     <fieldset className="py-2">
       <legend className="text-xs font-medium">Score weights</legend>
       <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
-        These mirror the score fields shown in qualification.
+        These are not lead scores. They tell the agent how much each factor
+        should influence the final priority score.
       </p>
       <div className="mt-2 grid gap-1.5 sm:grid-cols-2">
         {SCORE_WEIGHTS.map((item) => (
@@ -217,7 +317,7 @@ function WeightControls({
             <div className="flex items-center justify-between gap-3">
               <span className="text-xs font-medium">{item.label}</span>
               <span className="font-mono text-[11px] text-[var(--geist-muted)]">
-                {values[item.label]}
+                {values[item.label]} - {weightMeaning(values[item.label])}
               </span>
             </div>
             <p className="mt-0.5 min-h-8 text-[11px] leading-4 text-[var(--geist-muted)]">
@@ -231,6 +331,10 @@ function WeightControls({
               onChange={(event) => onChange(item.label, Number(event.target.value))}
               className="mt-1.5 w-full accent-[var(--geist-success)]"
             />
+            <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-[var(--geist-muted)]">
+              <span>ignore</span>
+              <span>primary</span>
+            </div>
           </div>
         ))}
       </div>
@@ -258,22 +362,26 @@ export function IcpConfigurator() {
 
   return (
     <div>
+      <CalibrationGuide />
       <RangeControl
         label="Minimum overall priority"
-        hint="Leads below this score are not qualified."
+        hint="The final weighted score. Set this higher when the BDR only wants the best leads."
         value={overallThreshold}
+        valueLabel={thresholdMeaning(overallThreshold)}
         onChange={setOverallThreshold}
       />
       <RangeControl
         label="Minimum ICP fit"
-        hint="Low ICP fit disqualifies even when other signals look good."
+        hint="The account-fit floor. A lead below this is weak even if one signal looks promising."
         value={icpThreshold}
+        valueLabel={thresholdMeaning(icpThreshold)}
         onChange={setIcpThreshold}
       />
       <RangeControl
         label="Minimum product intent"
-        hint="Extra BDR guardrail for frontend, platform, React, Next.js, or Vercel-relevant intent."
+        hint="The Vercel-relevance floor. Raise this when the BDR wants stronger frontend, platform, React, or Next.js evidence."
         value={intentThreshold}
+        valueLabel={thresholdMeaning(intentThreshold)}
         onChange={setIntentThreshold}
       />
       <WeightControls

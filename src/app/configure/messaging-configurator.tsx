@@ -70,8 +70,9 @@ const CURRENT_PIPELINE_SIGNALS: Signal[] = [
     current: true,
   },
   {
-    label: "Draft queued for BDR review",
-    description: "send_message records a drafted send and send window; it does not deliver email.",
+    label: "Approved send released",
+    description:
+      "The full pipeline stores the approved send and send window before moving the lead to In process.",
     current: true,
   },
 ];

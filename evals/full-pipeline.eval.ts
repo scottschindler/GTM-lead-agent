@@ -100,7 +100,8 @@ export default defineEval({
       ),
       equals(true),
     );
-    await t.require(content?.send?.status, equals("drafted"));
+    await t.require(content?.send?.status, equals("approved"));
+    await t.require(Boolean(content?.send?.approvedAt), equals(true));
     await t.require(lead?.outcome, equals("nurture"));
     await t.require(lead?.stages.learning.status, equals("pending"));
   },

@@ -21,11 +21,7 @@ import type {
 } from "../../agent/lib/types";
 import { StageOutput } from "./stage-output";
 import { AppHeader } from "./app-header";
-import {
-  DEMO_LEAD_IDS,
-  DEMO_REVIEW_LEAD,
-  DEMO_REVIEW_LEAD_ID,
-} from "../lib/demo-review-lead";
+import { DEMO_LEAD_IDS } from "../lib/demo-review-lead";
 import {
   DEMO_IN_PROCESS_LEADS,
   type DemoEngagement,
@@ -170,6 +166,163 @@ function messagingAngle(item: ReviewItem): string | undefined {
     item.messaging?.messagingAngle ??
     item.hypothesis?.hypotheses?.[0]?.statement
   );
+}
+
+function sendReviewTimestamp(item: ReviewItem): number {
+  const time = Date.parse(
+    item.send.approvedAt ??
+      item.lead.updatedAt ??
+      item.send.sendWindow.recommendedAt,
+  );
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function formatChannel(channel: string): string {
+  const cleaned = channel.replace(/[-_]/g, " ").trim();
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : "Email";
+}
+
+function formatEventLabel(type: string): string {
+  return formatChannel(type.replace(/ed$/, "").replace(/_/g, " "));
+}
+
+function approvedSendWhen(item: ReviewItem): string | undefined {
+  return formatWhen(
+    item.send.approvedAt ?? item.send.sendWindow.recommendedAt,
+    item.send.sendWindow.timezone,
+  );
+}
+
+function buildLiveSequence(item: ReviewItem): DemoSequenceTouch[] {
+  const plan = item.lead.stages.sequence_planning.output;
+  const approvedAt = approvedSendWhen(item);
+
+  if (!plan?.steps.length) {
+    return [
+      {
+        id: `${item.lead.id}-approved-send`,
+        day: 0,
+        label: "Email 1 - sent",
+        detail: `Approved outreach released: ${item.send.subject}`,
+        status: "sent",
+        timing: approvedAt ? `Sent ${approvedAt}` : "Sent after approval",
+      },
+    ];
+  }
+
+  return plan.steps.map((step, index) => {
+    const day = Number.isFinite(step.delayDays) ? step.delayDays : index * 3;
+    const sent = index === 0;
+    const status: DemoSequenceTouchStatus = sent
+      ? "sent"
+      : index === 1
+        ? "next"
+        : "scheduled";
+    const channel = formatChannel(step.channel);
+    return {
+      id: `${item.lead.id}-touch-${index + 1}`,
+      day,
+      label: `${channel} ${index + 1}${sent ? " - sent" : ""}`,
+      detail:
+        step.purpose.trim() ||
+        (sent
+          ? `Approved outreach released: ${item.send.subject}`
+          : "Follow-up touch from the saved sequence plan."),
+      status,
+      timing: sent
+        ? approvedAt
+          ? `Sent ${approvedAt}`
+          : "Sent after approval"
+        : `Scheduled day ${day} - ${plan.timing || "local send window"}`,
+    };
+  });
+}
+
+function buildLiveEngagement(
+  item: ReviewItem,
+  sequence: DemoSequenceTouch[],
+): DemoEngagement {
+  const output = item.engagement;
+  const intentScore = output?.intentScore ?? item.lead.intentScore ?? 0;
+  const approvedAt = approvedSendWhen(item);
+  const timeline: DemoEngagement["timeline"] = [
+    {
+      id: `${item.lead.id}-send-approved`,
+      kind: "outbound",
+      label: "Send approved",
+      detail: item.send.subject,
+      timing: approvedAt ?? "Approved",
+    },
+    ...(output?.events ?? []).slice(0, 4).map((event) => ({
+      id: event.id,
+      kind: "website" as const,
+      label: formatEventLabel(event.type),
+      timing:
+        formatWhen(event.occurredAt, item.send.sendWindow.timezone) ??
+        event.occurredAt,
+      delta: undefined,
+    })),
+  ];
+
+  return {
+    intentScore,
+    confidence: output?.confidence ?? 0,
+    trend: output?.events?.length ? "rising" : "steady",
+    deltaThisWeek: 0,
+    recommendedNextAction:
+      output?.recommendedNextAction ??
+      sequence.find((touch) => touch.status === "next")?.detail ??
+      item.lead.recommendedNextAction ??
+      "Wait for a reply or buying signal before changing the sequence.",
+    signalBreakdown: output?.signalBreakdown?.length
+      ? output.signalBreakdown
+      : [
+          { signal: "Approved outbound", weight: 0 },
+          { signal: "Replies", weight: 0 },
+          { signal: "Pricing interest", weight: 0 },
+        ],
+    timeline,
+  };
+}
+
+function buildLiveWaitingSummary(
+  item: ReviewItem,
+  nextTouch: DemoSequenceTouch | undefined,
+): string {
+  const approvedAt = approvedSendWhen(item);
+  const prefix = approvedAt
+    ? `Send approved and released ${approvedAt}.`
+    : "Send approved and released.";
+  if (!nextTouch) {
+    return `${prefix} The agent is waiting for a reply or buying signal.`;
+  }
+  return `${prefix} ${nextTouch.label} is queued for day ${nextTouch.day} unless ${item.lead.name} replies first.`;
+}
+
+function toLiveInProcessLead(item: ReviewItem): DemoInProcessLead {
+  const sequence = buildLiveSequence(item);
+  const nextTouch = sequence.find((touch) => touch.status !== "sent");
+  const plan = item.lead.stages.sequence_planning.output;
+  return {
+    id: item.lead.id,
+    name: item.lead.name,
+    company: item.lead.company,
+    source: item.lead.source,
+    cadence: plan?.cadence ?? formatSequenceCadence(sequence),
+    timing:
+      plan?.timing ??
+      `${item.send.sendWindow.earliestLocal}-${item.send.sendWindow.latestLocal} (${item.send.sendWindow.timezone})`,
+    waitingSummary: buildLiveWaitingSummary(item, nextTouch),
+    nextTouchLabel: nextTouch
+      ? `${nextTouch.label} - day ${nextTouch.day}`
+      : "Waiting for reply",
+    sequence,
+    engagement: buildLiveEngagement(item, sequence),
+    exitConditions: plan?.exitConditions?.length
+      ? plan.exitConditions
+      : ["Reply received", "Meeting booked", "Opt-out"],
+    stages: item.lead.stages,
+  };
 }
 
 function applySendAction(
@@ -1294,115 +1447,120 @@ function GuardrailList({ items }: { items: string[] }) {
   );
 }
 
-function buildNeedsReviewCards(sendItem: ReviewItem): PipelineReviewCard[] {
+function buildSendReviewCard(sendItem: ReviewItem): PipelineReviewCard {
   const sendBy = formatWhen(
     sendItem.send.sendWindow.recommendedAt,
     sendItem.send.sendWindow.timezone,
   );
   const sendAngle = messagingAngle(sendItem);
 
-  return [
-    {
-      id: "demo-qualification-review",
-      kind: "qualification",
-      leadName: "Michael Truell",
-      company: "Cursor",
-      source: "product-signup",
-      currentStage: "Qualification review",
-      blockedBy: "High-value executive account",
-      approvalReason:
-        "The agent found a strong ICP fit and an executive contact. Configure requires human confirmation before spending more agent work on strategic accounts.",
-      completedActions: [
-        "Captured lead from product signup and normalized the company domain.",
-        "Researched Cursor's AI coding agent motion and developer audience.",
-        "Scored the account 8.1 overall with strong engineering maturity and buying-authority signals.",
-      ],
-      nextRequiredAction:
-        "Confirm whether this account is worth pursuing before opportunity mapping starts.",
-      pipelineSteps: QUALIFICATION_PIPELINE,
-      evidence: [
-        "Product signup came from a developer-platform company.",
-        "Public AI coding agent launches make the timing relevant.",
-        "Executive buyer plus high-growth developer audience matches ICP.",
-      ],
-      guardrails: [
-        "Approve before contacting C-level executives.",
-        "High-priority strategic accounts need a human before sequence work.",
-      ],
-      score: 8.1,
-    },
-    {
-      id: "demo-messaging-review",
-      kind: "messaging",
-      leadName: "Raj Dutt",
-      company: "Grafana Labs",
-      source: "demo-request",
-      currentStage: "Messaging review",
-      blockedBy: "Executive touch plus strategic positioning",
-      approvalReason:
-        "The agent mapped a platform-team opportunity and proposed a messaging angle. Configure requires a BDR to approve the angle before the agent plans the sequence and writes the first draft.",
-      completedActions: [
-        "Mapped the pain from internal developer portals to Vercel preview deploys and edge delivery.",
-        "Selected a peer-engineer messaging angle for infrastructure leaders.",
-      ],
-      nextRequiredAction:
-        "Approve the messaging angle, or request a rewrite before sequence planning and draft generation.",
-      pipelineSteps: MESSAGING_PIPELINE,
-      evidence: [
-        "Demo request submitted this week.",
-        "Public investment in developer experience and internal tooling.",
-        "Multi-product engineering org with portal sprawl risk.",
-      ],
-      guardrails: [
-        "Approve before contacting C-level executives.",
-        "Approve strategic claims before draft generation.",
-        "Sequence timing must respect configured send windows and exit conditions.",
-      ],
-      score: 8.6,
-    },
-    {
-      id: `demo-send-review-${sendItem.lead.id}`,
-      kind: "send",
-      leadName: sendItem.lead.name,
-      company: sendItem.lead.company,
-      source: sendItem.lead.source,
-      currentStage: "Human send approval",
-      blockedBy: "Outbound send gate",
-      approvalReason:
-        "The full pipeline is complete, but Configure is set to approve every send. Nothing has been sent until a BDR approves this draft.",
-      completedActions: [
-        "Researched the account and contact.",
-        `Qualified the lead${
-          sendItem.qualification
-            ? ` at ${sendItem.qualification.scores.overallPriority.toFixed(1)}/10`
-            : ""
-        }.`,
-        sendAngle
-          ? `Selected messaging angle: ${sendAngle}`
-          : "Selected a concise technical messaging angle.",
-        sendItem.content.landingPageSlug
-          ? "Generated a personalized landing page for the email."
-          : "Prepared outreach without a landing page.",
-        sendBy
-          ? `Queued the draft for the recommended send window: ${sendBy}.`
-          : "Queued the draft for BDR review.",
-      ],
-      nextRequiredAction:
-        "Approve, edit, or deny the outbound email before the send can be released.",
-      pipelineSteps: buildSendPipeline(sendItem),
-      evidence:
-        sendItem.hypothesis?.hypotheses?.[0]?.evidence ??
-        sendItem.research?.company.growthSignals ??
-        [],
-      guardrails: [
-        "Outbound send approval: Every send.",
-        "Approve any claim about pricing, discounts, or strategic customer fit.",
-        "Hard refusals block fabricated customer references and unsourced claims.",
-      ],
-      score: sendItem.qualification?.scores.overallPriority,
-      item: sendItem,
-    },
-  ];
+  return {
+    id: `send-review-${sendItem.lead.id}`,
+    kind: "send",
+    leadName: sendItem.lead.name,
+    company: sendItem.lead.company,
+    source: sendItem.lead.source,
+    currentStage: "Human send approval",
+    blockedBy: "Outbound send gate",
+    approvalReason:
+      "The full pipeline is complete, but Configure is set to approve every send. Nothing has been sent until a BDR approves this draft.",
+    completedActions: [
+      "Researched the account and contact.",
+      `Qualified the lead${
+        sendItem.qualification
+          ? ` at ${sendItem.qualification.scores.overallPriority.toFixed(1)}/10`
+          : ""
+      }.`,
+      sendAngle
+        ? `Selected messaging angle: ${sendAngle}`
+        : "Selected a concise technical messaging angle.",
+      sendItem.content.landingPageSlug
+        ? "Generated a personalized landing page for the email."
+        : "Prepared outreach without a landing page.",
+      sendBy
+        ? `Queued the draft for the recommended send window: ${sendBy}.`
+        : "Queued the draft for BDR review.",
+    ],
+    nextRequiredAction:
+      "Approve, edit, or deny the outbound email before the send can be released.",
+    pipelineSteps: buildSendPipeline(sendItem),
+    evidence:
+      sendItem.hypothesis?.hypotheses?.[0]?.evidence ??
+      sendItem.research?.company.growthSignals ??
+      [],
+    guardrails: [
+      "Outbound send approval: Every send.",
+      "Approve any claim about pricing, discounts, or strategic customer fit.",
+      "Hard refusals block fabricated customer references and unsourced claims.",
+    ],
+    score: sendItem.qualification?.scores.overallPriority,
+    item: sendItem,
+  };
+}
+
+const DEMO_REVIEW_CARDS: PipelineReviewCard[] = [
+  {
+    id: "demo-qualification-review",
+    kind: "qualification",
+    leadName: "Michael Truell",
+    company: "Cursor",
+    source: "product-signup",
+    currentStage: "Qualification review",
+    blockedBy: "High-value executive account",
+    approvalReason:
+      "The agent found a strong ICP fit and an executive contact. Configure requires human confirmation before spending more agent work on strategic accounts.",
+    completedActions: [
+      "Captured lead from product signup and normalized the company domain.",
+      "Researched Cursor's AI coding agent motion and developer audience.",
+      "Scored the account 8.1 overall with strong engineering maturity and buying-authority signals.",
+    ],
+    nextRequiredAction:
+      "Confirm whether this account is worth pursuing before opportunity mapping starts.",
+    pipelineSteps: QUALIFICATION_PIPELINE,
+    evidence: [
+      "Product signup came from a developer-platform company.",
+      "Public AI coding agent launches make the timing relevant.",
+      "Executive buyer plus high-growth developer audience matches ICP.",
+    ],
+    guardrails: [
+      "Approve before contacting C-level executives.",
+      "High-priority strategic accounts need a human before sequence work.",
+    ],
+    score: 8.1,
+  },
+  {
+    id: "demo-messaging-review",
+    kind: "messaging",
+    leadName: "Raj Dutt",
+    company: "Grafana Labs",
+    source: "demo-request",
+    currentStage: "Messaging review",
+    blockedBy: "Executive touch plus strategic positioning",
+    approvalReason:
+      "The agent mapped a platform-team opportunity and proposed a messaging angle. Configure requires a BDR to approve the angle before the agent plans the sequence and writes the first draft.",
+    completedActions: [
+      "Mapped the pain from internal developer portals to Vercel preview deploys and edge delivery.",
+      "Selected a peer-engineer messaging angle for infrastructure leaders.",
+    ],
+    nextRequiredAction:
+      "Approve the messaging angle, or request a rewrite before sequence planning and draft generation.",
+    pipelineSteps: MESSAGING_PIPELINE,
+    evidence: [
+      "Demo request submitted this week.",
+      "Public investment in developer experience and internal tooling.",
+      "Multi-product engineering org with portal sprawl risk.",
+    ],
+    guardrails: [
+      "Approve before contacting C-level executives.",
+      "Approve strategic claims before draft generation.",
+      "Sequence timing must respect configured send windows and exit conditions.",
+    ],
+    score: 8.6,
+  },
+];
+
+function buildNeedsReviewCards(sendItems: ReviewItem[]): PipelineReviewCard[] {
+  return [...sendItems.map(buildSendReviewCard), ...DEMO_REVIEW_CARDS];
 }
 
 function demoActionLabels(kind: ReviewCardKind): {
@@ -1906,6 +2064,19 @@ export function ReviewsInbox() {
     Record<string, DemoSequenceTouch[]>
   >({});
 
+  useEffect(() => {
+    const panel = new URLSearchParams(window.location.search).get("panel");
+    if (
+      panel === "needs_review" ||
+      panel === "in_process" ||
+      panel === "complete"
+    ) {
+      const id = window.setTimeout(() => setSelectedPanel(panel), 0);
+      return () => window.clearTimeout(id);
+    }
+    return undefined;
+  }, []);
+
   const refresh = useCallback(async () => {
     const response = await fetch("/api/leads", { cache: "no-store" });
     if (!response.ok) throw new Error("Failed to load leads");
@@ -1995,31 +2166,35 @@ export function ReviewsInbox() {
     () =>
       items
         .filter((item) => item.send.status === "drafted")
-        .sort((a, b) =>
-          a.send.sendWindow.recommendedAt.localeCompare(
-            b.send.sendWindow.recommendedAt,
-          ),
-        ),
+        .sort((a, b) => sendReviewTimestamp(b) - sendReviewTimestamp(a)),
     [items],
   );
 
-  const sendApprovalItem = useMemo(
-    () =>
-      items.find((item) => item.lead.id === DEMO_REVIEW_LEAD_ID) ??
-      pendingItems[0] ??
-      toReviewItem(DEMO_REVIEW_LEAD)!,
-    [items, pendingItems],
-  );
-
   const needsReviewCards = useMemo(
-    () => buildNeedsReviewCards(sendApprovalItem),
-    [sendApprovalItem],
+    () => buildNeedsReviewCards(pendingItems),
+    [pendingItems],
   );
 
-  // Demo data for now: leads whose full pipeline already ran and whose send
-  // was approved - the agent is working the outreach sequence, waiting on a
-  // reply.
-  const inProcessLeads = DEMO_IN_PROCESS_LEADS;
+  const liveInProcessLeads = useMemo(
+    () =>
+      items
+        .filter(
+          (item) =>
+            item.send.status === "approved" && !DEMO_LEAD_IDS.has(item.lead.id),
+        )
+        .sort((a, b) => sendReviewTimestamp(b) - sendReviewTimestamp(a))
+        .map(toLiveInProcessLead),
+    [items],
+  );
+
+  const inProcessLeads = useMemo(() => {
+    const liveIds = new Set(liveInProcessLeads.map((lead) => lead.id));
+    return [
+      ...liveInProcessLeads,
+      ...DEMO_IN_PROCESS_LEADS.filter((lead) => !liveIds.has(lead.id)),
+    ];
+  }, [liveInProcessLeads]);
+
   // Demo data for now: leads with a known end result (sale or decline) and
   // seeded assessment summaries.
   const completeLeads = DEMO_COMPLETE_LEADS;

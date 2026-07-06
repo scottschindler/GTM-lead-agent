@@ -38,5 +38,5 @@ export function withDemoLeads(leads: Lead[]): Lead[] {
 }
 
 export function countNeedsReview(leads: Lead[]): number {
-  return Math.max(DEMO_NEEDS_REVIEW_COUNT, leads.filter(hasDraftedSend).length);
+  return Math.max(DEMO_NEEDS_REVIEW_COUNT, leads.filter(hasDraftedSend).length + 2);
 }

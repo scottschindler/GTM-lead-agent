@@ -5,7 +5,7 @@ const SKILL_PROGRESS_SUMMARIES: Record<string, string> = {
   hypothesis: "Turning the research into outreach angles",
   "opportunity-mapping": "Matching the account's pains to relevant opportunities",
   "sequence-planning": "Planning the outreach sequence",
-  "content-generation": "Choosing the strongest message and drafting the outreach for review",
+  "content-generation": "Choosing the strongest message and preparing the outreach",
 };
 
 const TOOL_PROGRESS_SUMMARIES: Record<string, string> = {
@@ -32,7 +32,7 @@ const TOOL_DONE_SUMMARIES: Record<string, string> = {
   get_lead: "Lead profile is ready",
   create_lead: "Lead profile is ready",
   researcher: "Research notes are ready",
-  pipeline_writer: "Strategy and draft are ready",
+  pipeline_writer: "Strategy and send are ready",
   web_search: "Useful context found",
   web_fetch: "Source reviewed",
   load_skill: "Playbook is ready",

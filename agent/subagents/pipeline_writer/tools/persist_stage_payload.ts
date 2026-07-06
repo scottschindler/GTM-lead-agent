@@ -43,8 +43,8 @@ const STAGE_SAVE_COPY: Record<
     skipped: "Opportunity map skipped",
   },
   content_generation: {
-    progress: "Creating the page and queuing the draft",
-    done: "Message, page, and draft queued",
+    progress: "Creating the page and releasing the send",
+    done: "Message, page, and send released",
     skipped: "Messaging skipped",
   },
   sequence_planning: {
@@ -208,6 +208,7 @@ export default defineTool({
           body: emailBody,
           cta: data.cta,
           timezone: resolvedLead.timezone,
+          reviewStatus: "approved",
         });
         await appendStageActivity(sessionId, canonicalLeadId, stage, "done");
         return {

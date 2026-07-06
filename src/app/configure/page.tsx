@@ -82,7 +82,7 @@ export default function ConfigurePage() {
       <div className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-8">
         <CollapsibleSection
           title="ICP & qualification"
-          description="Define who is worth pursuing and where the bar sits. These feed the qualification skill's rubric and the disqualify threshold enforced in code."
+          description="Define what a qualified lead looks like. Thresholds set the minimum bar; weights decide which evidence matters most."
         >
           <Card>
             <IcpConfigurator />
@@ -104,15 +104,16 @@ export default function ConfigurePage() {
         >
           <Card>
             <MessagingConfigurator />
-          </Card>
-        </CollapsibleSection>
-
-        <CollapsibleSection
-          title="Prompts & performance"
-          description="Let BDRs edit prompt versions, restore prior versions, and see which prompt variants perform best."
-        >
-          <Card>
-            <PromptConfigurator />
+            <div className="mt-5 border-t border-[var(--geist-border)] pt-5">
+              <div className="mb-3">
+                <h3 className="text-sm font-medium">Prompts</h3>
+                <p className="mt-0.5 text-[11px] leading-4 text-[var(--geist-muted)]">
+                  Edit messaging and content prompt versions, restore prior
+                  versions, and compare which variants perform best.
+                </p>
+              </div>
+              <PromptConfigurator />
+            </div>
           </Card>
         </CollapsibleSection>
 

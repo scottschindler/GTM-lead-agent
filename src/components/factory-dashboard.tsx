@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useEveAgent } from "eve/react";
 
@@ -447,6 +448,14 @@ export function FactoryDashboard() {
   });
   const [showPrevLead, setShowPrevLead] = useState(false);
   const [runSubmitting, setRunSubmitting] = useState(false);
+  const [lastSubmittedRunLeadId, setLastSubmittedRunLeadId] = useState<
+    string | null
+  >(null);
+  const [completionModalLead, setCompletionModalLead] = useState<{
+    id: string;
+    name: string;
+    company: string;
+  } | null>(null);
   const runSubmittingRef = useRef(false);
 
   const refreshLeads = useCallback(async () => {
@@ -678,6 +687,35 @@ export function FactoryDashboard() {
   // isBusy governs run control; uiBusy keeps the running presentation up
   // until the replayed walk has caught up with reality.
   const uiBusy = isBusy || pendingReplay;
+  const selectedLeadApprovedSend =
+    lead?.stages.content_generation.output?.send?.status === "approved";
+
+  useEffect(() => {
+    if (
+      !lead ||
+      lastSubmittedRunLeadId !== lead.id ||
+      !selectedLeadSettled ||
+      uiBusy ||
+      !selectedLeadApprovedSend
+    ) {
+      return;
+    }
+    const id = window.setTimeout(() => {
+      setCompletionModalLead({
+        id: lead.id,
+        name: lead.name,
+        company: lead.company,
+      });
+      setLastSubmittedRunLeadId(null);
+    }, 0);
+    return () => window.clearTimeout(id);
+  }, [
+    lastSubmittedRunLeadId,
+    lead,
+    selectedLeadApprovedSend,
+    selectedLeadSettled,
+    uiBusy,
+  ]);
 
   const shouldClearClientRun =
     Boolean(clientRunLeadId) &&
@@ -838,6 +876,8 @@ export function FactoryDashboard() {
     runSubmittingRef.current = true;
     setRunSubmitting(true);
     setError(null);
+    setCompletionModalLead(null);
+    setLastSubmittedRunLeadId(lead.id);
     setClientRun({ leadId: lead.id, startedAt: new Date().toISOString() });
     try {
       await agent.send({ message: buildRunMessage(lead, config) });
@@ -847,6 +887,7 @@ export function FactoryDashboard() {
       ]);
     } catch (err) {
       setClientRun(null);
+      setLastSubmittedRunLeadId(null);
       setError(describeAgentError(err));
     } finally {
       runSubmittingRef.current = false;
@@ -864,6 +905,8 @@ export function FactoryDashboard() {
     runSubmittingRef.current = false;
     setRunSubmitting(false);
     setClientRun(null);
+    setLastSubmittedRunLeadId(null);
+    setCompletionModalLead(null);
     setReplayRun(null);
     setReplayCount(0);
     agent.reset();
@@ -1081,6 +1124,63 @@ export function FactoryDashboard() {
           ))}
         </section>
       </main>
+
+      {completionModalLead ? (
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center px-4 py-6"
+          style={{
+            background:
+              "color-mix(in srgb, var(--geist-foreground) 18%, transparent)",
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pipeline-complete-title"
+            className="w-full max-w-md rounded-[8px] border border-[var(--geist-border)] bg-[var(--geist-background)] p-5 text-[var(--geist-foreground)]"
+            style={{ boxShadow: "var(--geist-shadow)" }}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2
+                  id="pipeline-complete-title"
+                  className="text-lg font-semibold leading-tight"
+                >
+                  Complete
+                </h2>
+                <p className="mt-2 text-sm leading-6 text-[var(--geist-muted)]">
+                  {completionModalLead.name} at {completionModalLead.company} is
+                  now in the In process section while the agent waits for a
+                  reply.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCompletionModalLead(null)}
+                aria-label="Close"
+                className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[8px] border border-[var(--geist-border)] text-[var(--geist-muted)] hover:bg-[var(--geist-hover)] hover:text-[var(--geist-foreground)]"
+              >
+                ×
+              </button>
+            </div>
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              <Link
+                href="/?panel=in_process"
+                className="geist-btn geist-btn-primary"
+              >
+                View dashboard
+              </Link>
+              <button
+                type="button"
+                onClick={() => setCompletionModalLead(null)}
+                className="geist-btn geist-btn-secondary"
+              >
+                Stay here
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
