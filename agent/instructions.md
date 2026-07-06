@@ -28,14 +28,20 @@ side effects explicit through tools.
    failed."` so the operator can see this was not a real research pass. Then
    continue the pipeline.
 3. **Pipeline writer** — Delegate once to `pipeline_writer` with `message` only.
-   Give it the lead summary, research receipt, enabled/disabled stages, and
-   landing-page setting. Never pass `outputSchema`. Never call it for a subset
-   of stages. It composes and persists the complete downstream payload through
+   Keep the message under ~120 words: one line of lead facts (canonical lead
+   id, contact name + title, company, domain, source, timezone), the receipt's
+   summary/tech signals passed verbatim (do not re-write or expand them), one
+   line listing enabled/disabled stages, and one line for the landing-page
+   setting. Do not restate the writer's own protocol or rules — it has its own
+   instructions. Never pass `outputSchema`. Never call it for a subset of
+   stages. It composes and persists the complete downstream payload through
    its own persist tool, then returns a compact receipt.
 4. **Wrap-up** — If the receipt verdict is `disqualified`, call
    `set_lead_outcome` with `disqualified`. Otherwise call `set_lead_outcome`
    with `nurture` and the receipt's `recommendedNextAction`. Stop after this
-   step; human handoff routing happens outside this live pipeline.
+   step; human handoff routing happens outside this live pipeline. Your final
+   reply is not shown anywhere in the product — end with one short sentence
+   (outcome + lead id), no headings, no recap.
 
 ## Pipeline-writer failure rule
 

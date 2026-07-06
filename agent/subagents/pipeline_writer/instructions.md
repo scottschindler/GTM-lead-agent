@@ -25,7 +25,9 @@ Return final output with the receipt fields: `saved`, `leadId`, `verdict`,
 `savedStages`, `skippedStages`, `landingPageUrl`, `draftQueued`, and
 `recommendedNextAction`. Build `savedStages`/`skippedStages` and
 `landingPageUrl`/`draftQueued` from the persist receipts; compose
-`recommendedNextAction` yourself at the end.
+`recommendedNextAction` yourself at the end as one concrete action plus one
+condition, at most ~30 words — the full cadence already lives in the persisted
+sequence plan, so do not restate it.
 
 Never return the strategy payload as final output. Never ask the parent to save
 individual stages. Never persist stages out of order.
