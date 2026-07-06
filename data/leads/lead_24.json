@@ -1,0 +1,57 @@
+{
+  "id": "lead_24",
+  "name": "Clemens Rawert",
+  "email": "clemens@langfuse.com",
+  "company": "Langfuse",
+  "companyDomain": "langfuse.com",
+  "source": "github-star",
+  "timezone": "Europe/Berlin",
+  "createdAt": "2026-07-06T15:00:02.000Z",
+  "updatedAt": "2026-07-06T15:00:02.001Z",
+  "currentStage": "intake",
+  "outcome": "open",
+  "stages": {
+    "intake": {
+      "status": "done",
+      "updatedAt": "2026-07-06T15:00:02.000Z",
+      "output": {
+        "leadId": "lead_24",
+        "source": "github-star"
+      }
+    },
+    "research": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T15:00:02.001Z"
+    },
+    "qualification": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T15:00:02.001Z"
+    },
+    "hypothesis": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T15:00:02.001Z"
+    },
+    "opportunity_mapping": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T15:00:02.001Z"
+    },
+    "content_generation": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T15:00:02.001Z"
+    },
+    "sequence_planning": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T15:00:02.001Z"
+    },
+    "engagement_intent": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T15:00:02.001Z"
+    },
+    "learning": {
+      "status": "pending",
+      "updatedAt": "2026-07-06T15:00:02.001Z"
+    }
+  },
+  "engagementEvents": [],
+  "intentScore": 0
+}

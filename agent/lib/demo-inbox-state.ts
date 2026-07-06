@@ -160,38 +160,6 @@ Scott`,
     approvedHoursAgo: 3,
   },
   {
-    profileId: "lead_07",
-    sendStatus: "approved",
-    overallPriority: 9.0,
-    messagingAngle:
-      "Shopify merchants and internal tools need edge-fast storefront experiences",
-    story:
-      "Toby's ecosystem runs on speed. Vercel edge and framework tooling help merchant-facing and internal apps stay fast at scale.",
-    subject: "Edge-fast experiences for Shopify",
-    body: `Hi Toby,
-
-Shopify's bar for merchant experience is speed. Teams building on and around Shopify need the same bar for their own frontends.
-
-Vercel edge + Next.js is how a lot of those teams ship without standing up infra.
-
-Worth a short look at patterns we're seeing in commerce?
-
-Best,
-Scott`,
-    cta: "Commerce patterns on Vercel",
-    qualificationRationale:
-      "Pricing page visit from a tier-1 commerce platform. High deal potential; agent auto-qualified and drafted.",
-    hypothesis:
-      "Shopify-adjacent teams need edge-fast frontends without ops overhead.",
-    evidence: [
-      "Pricing page visit",
-      "Commerce platform with massive merchant ecosystem",
-      "Public focus on performance",
-    ],
-    sendOffsetHours: -8,
-    approvedHoursAgo: 6,
-  },
-  {
     profileId: "lead_08",
     sendStatus: "approved",
     overallPriority: 8.4,

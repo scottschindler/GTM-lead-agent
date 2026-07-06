@@ -116,7 +116,9 @@ export async function listLeads(): Promise<Lead[]> {
   const leads: Lead[] = [];
   for (const key of keys) {
     const lead = await storage().getJson<Lead>(key);
-    if (lead) leads.push(lead);
+    if (lead && lead.source !== "eval" && !lead.id.startsWith("lead_eval")) {
+      leads.push(lead);
+    }
   }
   const sorted = leads.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const hasAllSeeds = SEED_LEAD_PROFILES.every((profile) =>
